@@ -18,21 +18,23 @@ class MemoryPage(BasePage):
         from core.memory import get_memory, get_largest_paths
 
         mem = get_memory()
-        root.addWidget(QLabel("<b>Оперативная память</b>"))
+        lbl_ram = QLabel("<b>Оперативная память</b>")
+        lbl_ram.setToolTip("ОЗУ используется программами. При нехватке система использует файл подкачки — работа замедляется")
+        root.addWidget(lbl_ram)
+        root.addSpacing(6)
 
         bar = QProgressBar()
         bar.setFixedHeight(12)
         bar.setValue(int(mem["Usage %"]))
         bar.setTextVisible(False)
-        bar.setStyleSheet("""
-            QProgressBar { background:#eee; border:1px solid #bbb; }
-            QProgressBar::chunk { background:#5c9ded; }
-        """)
         root.addWidget(bar)
         root.addWidget(QLabel(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB'))
 
-        root.addSpacing(10)
-        root.addWidget(QLabel("<b>Локальные диски</b>"))
+        root.addSpacing(14)
+        lbl_disk = QLabel("<b>Локальные диски</b>")
+        lbl_disk.setToolTip("Заполненность дисков. Мало свободного места может мешать обновлениям и установке программ")
+        root.addWidget(lbl_disk)
+        root.addSpacing(6)
 
         try:
             cmd = [
@@ -66,17 +68,16 @@ class MemoryPage(BasePage):
                 bar.setFixedHeight(12)
                 bar.setValue(percent)
                 bar.setFormat(f"{name}   {round(used/1e9,1)} / {round(size/1e9,1)} GB")
-                bar.setStyleSheet("""
-                    QProgressBar { background:#eee; border:1px solid #bbb; }
-                    QProgressBar::chunk { background:#82c91e; }
-                """)
                 root.addWidget(bar)
 
         except Exception as e:
             root.addWidget(QLabel("Ошибка получения дисков: " + str(e)))
 
-        root.addSpacing(12)
-        root.addWidget(QLabel("<b>Крупные объекты (по дискам)</b>"))
+        root.addSpacing(16)
+        lbl_heavy = QLabel("<b>Крупные объекты (по дискам)</b>")
+        lbl_heavy.setToolTip("Папки и файлы, занимающие больше всего места. Помогает найти, что можно удалить для освобождения места")
+        root.addWidget(lbl_heavy)
+        root.addSpacing(6)
 
         try:
             heavy = get_largest_paths()
@@ -99,9 +100,11 @@ class MemoryPage(BasePage):
 
                 title_drive = QLabel(f"Диск/путь: {base}")
                 title_drive.setStyleSheet("font-weight:bold; margin-top:6px;")
+                title_drive.setToolTip("Корневой путь, с которого выполнен анализ крупных папок и файлов")
                 root.addWidget(title_drive)
 
                 box_dirs = QGroupBox("Крупные папки")
+                box_dirs.setToolTip("Папки, занимающие больше всего места на диске. Отсортированы по размеру")
                 lay_dirs = QVBoxLayout(box_dirs)
                 lay_dirs.setSpacing(4)
 
@@ -118,6 +121,7 @@ class MemoryPage(BasePage):
                 root.addWidget(box_dirs)
 
                 box_files = QGroupBox("Крупные файлы")
+                box_files.setToolTip("Отдельные файлы с наибольшим размером. Помогает найти кандидатов на удаление")
                 lay_files = QVBoxLayout(box_files)
                 lay_files.setSpacing(4)
 

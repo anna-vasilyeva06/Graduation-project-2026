@@ -15,33 +15,37 @@ class BatteryPage(BasePage):
 
         b = get_battery()
         if not b:
-            root.addWidget(QLabel("Батарея не обнаружена"))
+            lbl_no = QLabel("Батарея не обнаружена")
+            lbl_no.setToolTip("На стационарных ПК батарея отсутствует. Раздел актуален для ноутбуков и планшетов")
+            root.addWidget(lbl_no)
             return
 
         percent = int(b["Percent"])
         plugged = bool(b["Plugged"])
 
-        root.addWidget(QLabel("<b>Батарея</b>"))
+        lbl_bat = QLabel("<b>Батарея</b>")
+        lbl_bat.setToolTip("Уровень заряда и состояние питания. При низком заряде рекомендуется подключить зарядку")
+        root.addWidget(lbl_bat)
 
         bar = QProgressBar()
         bar.setValue(percent)
         bar.setFixedHeight(12)
         bar.setTextVisible(False)
-        bar.setStyleSheet("""
-            QProgressBar { background:#eee; border:1px solid #bbb; }
-            QProgressBar::chunk { background:#5c9ded; }
-        """)
 
         root.addWidget(bar)
-        root.addWidget(QLabel(f"Заряд: {percent}%"))
-        root.addWidget(QLabel(
-            "Состояние: " + ("Подключено к сети" if plugged else "Работа от батареи")
-        ))
+        lbl_pct = QLabel(f"Заряд: {percent}%")
+        lbl_pct.setToolTip("Текущий уровень заряда батареи (0–100%)")
+        root.addWidget(lbl_pct)
+        lbl_st = QLabel("Состояние: " + ("Подключено к сети" if plugged else "Работа от батареи"))
+        lbl_st.setToolTip("Подключено к сети — батарея заряжается. Работа от батареи — питание от аккумулятора")
+        root.addWidget(lbl_st)
 
         mins_left = b.get("Time left min")
         if mins_left and mins_left > 0:
             h = mins_left // 60
             m = mins_left % 60
-            root.addWidget(QLabel(f"Осталось: {h} ч {m} мин"))
+            lbl_time = QLabel(f"Осталось: {h} ч {m} мин")
+            lbl_time.setToolTip("Примерное время работы до полной разрядки (при текущей нагрузке)")
+            root.addWidget(lbl_time)
 
         root.addStretch()

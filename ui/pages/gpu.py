@@ -14,7 +14,9 @@ class GpuPage(BasePage):
         root.setSpacing(6)
         root.setContentsMargins(12,12,12,12)
 
-        root.addWidget(QLabel("<b>Видеокарта</b>"))
+        lbl_gpu = QLabel("<b>Видеокарта</b>")
+        lbl_gpu.setToolTip("Графический процессор: модель и текущая загрузка. Важно для игр и тяжёлых приложений")
+        root.addWidget(lbl_gpu)
 
         from core.gpu import get_gpu
 
@@ -23,7 +25,9 @@ class GpuPage(BasePage):
 
         root.addWidget(QLabel("Модель: " + name))
         root.addSpacing(6)
-        root.addWidget(QLabel("Загрузка GPU (%)"))
+        lbl_load = QLabel("Загрузка GPU (%)")
+        lbl_load.setToolTip("Процент использования видеокарты. На Windows загрузка GPU определяется приближённо")
+        root.addWidget(lbl_load)
 
         self.series = QLineSeries()
         self.chart = QChart()

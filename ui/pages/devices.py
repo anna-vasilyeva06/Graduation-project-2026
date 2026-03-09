@@ -12,11 +12,14 @@ class DevicesPage(BasePage):
 
         title = QLabel("Подключённые устройства")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setToolTip("Мыши, клавиатуры, принтеры и Bluetooth-устройства, сопряжённые с компьютером")
         root.addWidget(title)
+        root.addSpacing(16)
 
         pc = wmi.WMI()
 
         active_box = QGroupBox("Подключено и используется сейчас")
+        active_box.setToolTip("Устройства ввода и вывода, которые сейчас активны (мышь, клавиатура, принтеры)")
         active_layout = QVBoxLayout(active_box)
 
         found = False
@@ -55,6 +58,7 @@ class DevicesPage(BasePage):
         root.addWidget(active_box)
 
         bt_box = QGroupBox("Ранее сопряжённые Bluetooth-устройства")
+        bt_box.setToolTip("Список устройств, которые когда-либо подключались по Bluetooth к этому ПК")
         bt_layout = QVBoxLayout(bt_box)
 
         try:

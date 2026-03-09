@@ -18,14 +18,16 @@ class HomePage(BasePage):
         title = QLabel("Общая сводка по системе")
         title.setStyleSheet("font-size:16px; font-weight:bold")
         root.addWidget(title)
+        root.addSpacing(16)
 
         box_system = QGroupBox("Система")
         grid_sys = QGridLayout(box_system)
+        grid_sys.setSpacing(8)
         grid_sys.setColumnStretch(1, 1)
 
         def add_row(grid, row, label, value):
             k = QLabel(label)
-            k.setStyleSheet("color:#555;")
+            k.setStyleSheet("color:#5a6c7d;")
             v = QLabel(str(value))
             grid.addWidget(k, row, 0, alignment=Qt.AlignLeft)
             grid.addWidget(v, row, 1, alignment=Qt.AlignLeft)
@@ -39,9 +41,11 @@ class HomePage(BasePage):
         add_row(grid_sys, 6, "Время работы системы", info.get("uptime", "—"))
 
         root.addWidget(box_system)
+        root.addSpacing(16)
 
         box_hw = QGroupBox("Аппаратные ресурсы")
         grid_hw = QGridLayout(box_hw)
+        grid_hw.setSpacing(8)
         grid_hw.setColumnStretch(1, 1)
 
         add_row(grid_hw, 0, "Процессор", info.get("cpu", "—"))
@@ -55,25 +59,18 @@ class HomePage(BasePage):
             bar.setRange(0, 100)
             bar.setValue(int(ram_pct))
             bar.setTextVisible(False)
-            bar.setStyleSheet("""
-                QProgressBar { background:#eee; border:1px solid #bbb; }
-                QProgressBar::chunk { background:#5c9ded; }
-            """)
 
             mem_label = QLabel(f"{ram_used} / {ram_total} GB ({ram_pct}%)")
             mem_layout_row = 1
-            grid_hw.addWidget(QLabel("ОЗУ"), mem_layout_row, 0, alignment=Qt.AlignLeft)
+            lbl_ram = QLabel("ОЗУ")
+            lbl_ram.setStyleSheet("color:#5a6c7d;")
+            grid_hw.addWidget(lbl_ram, mem_layout_row, 0, alignment=Qt.AlignLeft)
             grid_hw.addWidget(mem_label, mem_layout_row, 1, alignment=Qt.AlignLeft)
             grid_hw.addWidget(bar, mem_layout_row + 1, 0, 1, 2)
         else:
             add_row(grid_hw, 1, "ОЗУ", "нет данных")
 
-        add_row(
-            grid_hw,
-            3,
-            "Суммарный объём дисков",
-            f'{info.get("total_disk_gb","—")} GB',
-        )
+        add_row(grid_hw, 3, "Суммарный объём дисков", f'{info.get("total_disk_gb","—")} GB')
 
         battery = info.get("battery_percent")
         if battery is not None:
@@ -82,11 +79,9 @@ class HomePage(BasePage):
             bar_bat.setRange(0, 100)
             bar_bat.setValue(int(battery))
             bar_bat.setTextVisible(False)
-            bar_bat.setStyleSheet("""
-                QProgressBar { background:#eee; border:1px solid #bbb; }
-                QProgressBar::chunk { background:#82c91e; }
-            """)
-            grid_hw.addWidget(QLabel("Батарея"), 4, 0, alignment=Qt.AlignLeft)
+            lbl_bat = QLabel("Батарея")
+            lbl_bat.setStyleSheet("color:#5a6c7d;")
+            grid_hw.addWidget(lbl_bat, 4, 0, alignment=Qt.AlignLeft)
             grid_hw.addWidget(QLabel(f"{battery}%"), 4, 1, alignment=Qt.AlignLeft)
             grid_hw.addWidget(bar_bat, 5, 0, 1, 2)
 

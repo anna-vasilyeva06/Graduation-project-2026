@@ -1,10 +1,17 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QGroupBox, QVBoxLayout
+from PySide6.QtWidgets import (
+    QLabel,
+    QGroupBox,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QSpinBox,
+    QPushButton,
+)
 
-import psutil
-
-from core.network import get_network
+from core.network import get_network_info, ping_host, check_port
 from ui.pages.base import BasePage
+from ui.theme.colors import COLORS
 
 
 class NetworkPage(BasePage):
@@ -13,66 +20,140 @@ class NetworkPage(BasePage):
 
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
-        root.setSpacing(10)
+        root.setSpacing(12)
         root.setContentsMargins(12, 12, 12, 12)
 
-        title = QLabel("<b>Сетевые подключения</b>")
-        title.setStyleSheet("font-size:16px;")
+        title = QLabel("Сеть")
+        title.setStyleSheet("font-size:18px; font-weight:bold;")
+        title.setToolTip("Активные сетевые подключения, IP-адреса, скорость интерфейсов и проверка доступности хостов")
         root.addWidget(title)
+        root.addSpacing(16)
 
-        stats = psutil.net_if_stats()
-        addrs = psutil.net_if_addrs()
-        net = get_network()
+        # Активные интерфейсы
+        interfaces_label = QLabel("Активные подключения")
+        interfaces_label.setToolTip("Сетевые интерфейсы (Wi‑Fi, Ethernet и др.) с их параметрами и статусом")
+        interfaces_label.setStyleSheet("font-weight:bold; margin-top:12px; margin-bottom:4px;")
+        root.addWidget(interfaces_label)
 
-        found = False
+        try:
+            infos = get_network_info()
+        except Exception:
+            infos = []
 
-        for name, addr_list in addrs.items():
-            stat = stats.get(name)
-            if not stat:
-                continue
-
-            if not stat.isup:
-                continue
-
-            found = True
-
-            box = QGroupBox(name)
-            layout = QVBoxLayout(box)
-            layout.setSpacing(4)
-
-            lname = name.lower()
-            if "wi-fi" in lname or "wireless" in lname or "wlan" in lname:
-                conn_type = "Беспроводное (Wi-Fi)"
-            elif "ethernet" in lname:
-                conn_type = "Проводное (Ethernet)"
-            else:
-                conn_type = "Сетевое подключение"
-
-            layout.addWidget(QLabel(f"Тип подключения: {conn_type}"))
-            layout.addWidget(QLabel("Статус: подключено"))
-
-            ip = None
-            mac = None
-
-            for a in addr_list:
-                if a.family.name == "AF_INET":
-                    ip = a.address
-                if a.family.name == "AF_PACKET":
-                    mac = a.address
-
-            if ip:
-                layout.addWidget(QLabel(f"IPv4-адрес: {ip}"))
-            if mac:
-                layout.addWidget(QLabel(f"MAC-адрес: {mac}"))
-            # extra IPs (if any)
-            ips = net.get(name) or []
-            extra = [x for x in ips if x != ip]
-            if extra:
-                layout.addWidget(QLabel("Доп. IPv4: " + ", ".join(extra)))
-
-            root.addWidget(box)
-
-        if not found:
+        if not infos:
             root.addWidget(QLabel("Нет активных сетевых подключений"))
+        else:
+            for iface in infos:
+                box = QGroupBox(iface.get("name", "—"))
+                box.setStyleSheet(
+                    "QGroupBox { padding-top: 22px; } "
+                    "QGroupBox::title { subcontrol-origin: margin; left: 12px; top: 4px; padding: 4px 10px; }"
+                )
+                layout = QVBoxLayout(box)
+                layout.setSpacing(8)
+
+                # Тип и статус
+                conn_type = iface.get("type", "—")
+                layout.addWidget(QLabel(f"Тип: {conn_type}"))
+                layout.addWidget(QLabel("Статус: подключено"))
+
+                # IPv4
+                ipv4 = iface.get("ipv4") or []
+                if ipv4:
+                    l = QLabel(f"IPv4: {', '.join(ipv4)}")
+                    l.setToolTip("Адрес устройства в локальной сети (формат x.x.x.x)")
+                    layout.addWidget(l)
+
+                # IPv6 (если есть)
+                ipv6 = iface.get("ipv6") or []
+                if ipv6:
+                    ipv6_show = ipv6[:2]
+                    l = QLabel(f"IPv6: {', '.join(ipv6_show)}")
+                    l.setToolTip("Адрес нового поколения (формат с двоеточиями)")
+                    layout.addWidget(l)
+
+                # MAC
+                mac = iface.get("mac") or ""
+                if mac:
+                    l = QLabel(f"MAC: {mac}")
+                    l.setToolTip("Уникальный идентификатор сетевого адаптера")
+                    layout.addWidget(l)
+
+                # Скорость и MTU
+                speed = iface.get("speed", "—")
+                mtu = iface.get("mtu", "—")
+                l_speed = QLabel(f"Скорость: {speed}")
+                l_speed.setToolTip("Максимальная пропускная способность интерфейса (Мбит/с)")
+                layout.addWidget(l_speed)
+                l_mtu = QLabel(f"MTU: {mtu}")
+                l_mtu.setToolTip("Максимальный размер пакета данных в байтах")
+                layout.addWidget(l_mtu)
+
+                root.addWidget(box)
+
+        # --- Продвинутые: проверка доступности ---
+        adv_label = QLabel("Проверка доступности (для продвинутых пользователей)")
+        adv_label.setStyleSheet("font-weight:bold; margin-top:20px; margin-bottom:8px;")
+        adv_label.setToolTip("Ping — проверка доступности по сети. Порт — проверка, открыт ли указанный TCP-порт")
+        root.addWidget(adv_label)
+
+        adv_box = QGroupBox("Проверка хоста или узла")
+        adv_box.setToolTip("Укажите IP или домен для проверки доступности (ping) или проверки открытого TCP-порта")
+        adv_lay = QVBoxLayout(adv_box)
+        adv_lay.setSpacing(8)
+
+        row1 = QHBoxLayout()
+        row1.addWidget(QLabel("Хост:"))
+        self._host_input = QLineEdit()
+        self._host_input.setPlaceholderText("google.com или 8.8.8.8")
+        self._host_input.setMinimumWidth(200)
+        row1.addWidget(self._host_input)
+        row1.addWidget(QLabel("Порт:"))
+        self._port_input = QSpinBox()
+        self._port_input.setRange(1, 65535)
+        self._port_input.setValue(80)
+        row1.addWidget(self._port_input)
+        row1.addStretch()
+        adv_lay.addLayout(row1)
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+        btn_ping = QPushButton("Ping")
+        btn_ping.clicked.connect(self._do_ping)
+        btn_port = QPushButton("Проверить порт")
+        btn_port.clicked.connect(self._do_port)
+        btn_row.addWidget(btn_ping)
+        btn_row.addWidget(btn_port)
+        btn_row.addStretch()
+        adv_lay.addLayout(btn_row)
+
+        self._result_label = QLabel("")
+        self._result_label.setWordWrap(True)
+        self._result_label.setStyleSheet(f"color:{COLORS['text']}; margin-top:4px;")
+        adv_lay.addWidget(self._result_label)
+
+        root.addWidget(adv_box)
 
         root.addStretch()
+
+    def _do_ping(self):
+        host = self._host_input.text().strip()
+        ok, msg = ping_host(host)
+        if ok:
+            self._result_label.setText(f"{msg}")
+            self._result_label.setStyleSheet(f"color:{COLORS['success']}; margin-top:4px;")
+        else:
+            self._result_label.setText(f"{msg}")
+            self._result_label.setStyleSheet(f"color:{COLORS['error']}; margin-top:4px;")
+
+    def _do_port(self):
+        host = self._host_input.text().strip()
+        port = self._port_input.value()
+        ok, msg = check_port(host, port)
+        if ok:
+            self._result_label.setText(f"✓ {msg}")
+            self._result_label.setStyleSheet(f"color:{COLORS['success']}; margin-top:4px;")
+        else:
+            self._result_label.setText(f"✗ {msg}")
+            self._result_label.setStyleSheet(f"color:{COLORS['error']}; margin-top:4px;")
+
