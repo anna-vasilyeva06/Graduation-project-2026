@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QVBoxLayout, QLabel, QProgressBar
 from PySide6.QtCore import Qt
 from ui.pages.base import BasePage
 
+
 class BatteryPage(BasePage):
     def __init__(self):
         super().__init__()
@@ -24,7 +25,7 @@ class BatteryPage(BasePage):
         plugged = bool(b["Plugged"])
 
         lbl_bat = QLabel("<b>Батарея</b>")
-        lbl_bat.setToolTip("Уровень заряда и состояние питания. При низком заряде рекомендуется подключить зарядку")
+        lbl_bat.setToolTip("Уровень заряда, износ и состояние питания. При низком заряде рекомендуется подключить зарядку")
         root.addWidget(lbl_bat)
 
         bar = QProgressBar()
@@ -39,6 +40,17 @@ class BatteryPage(BasePage):
         lbl_st = QLabel("Состояние: " + ("Подключено к сети" if plugged else "Работа от батареи"))
         lbl_st.setToolTip("Подключено к сети — батарея заряжается. Работа от батареи — питание от аккумулятора")
         root.addWidget(lbl_st)
+
+        # Расчётная ёмкость vs номинальная (износ)
+        wear = b.get("WearPercent")
+        design = b.get("Design mWh")
+        full = b.get("Full mWh")
+        if wear is not None and design and full:
+            lbl_health = QLabel(
+                f"Износ: {wear:.1f}% (расчётная ёмкость {full:.0f} мВт·ч из номинальных {design:.0f} мВт·ч)"
+            )
+            lbl_health.setToolTip("Чем выше износ, тем меньше фактическая ёмкость батареи относительно заводской")
+            root.addWidget(lbl_health)
 
         mins_left = b.get("Time left min")
         if mins_left and mins_left > 0:

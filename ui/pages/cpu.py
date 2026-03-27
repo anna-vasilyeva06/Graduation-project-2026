@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 import psutil
 
 from core.processes import get_top_processes
+from core.cpu import get_cpu_temperature
 from ui.pages.base import BasePage
 
 
@@ -36,6 +37,21 @@ class CpuPage(BasePage):
         lbl_threads = QLabel("Потоков: " + str(cpu.get("Threads", "—")))
         lbl_threads.setToolTip("Логические процессоры. Обычно ≥ ядер (Hyper-Threading)")
         root.addWidget(lbl_threads)
+
+        # Текущая частота и температура
+        freq = cpu.get("Frequency MHz")
+        self._freq_label = QLabel(
+            "Частота: " + (f"{freq:.0f} МГц" if isinstance(freq, (int, float)) and freq else "нет данных")
+        )
+        self._freq_label.setToolTip("Текущая частота процессора (по данным ОС)")
+        root.addWidget(self._freq_label)
+
+        temp = get_cpu_temperature()
+        self._temp_label = QLabel(
+            "Температура: " + (f"{temp:.1f} °C" if temp is not None else "нет данных")
+        )
+        self._temp_label.setToolTip("Оценка температуры CPU. Может быть недоступна на некоторых системах")
+        root.addWidget(self._temp_label)
 
         root.addSpacing(6)
         lbl_load = QLabel("Загрузка CPU (%)")
@@ -82,9 +98,23 @@ class CpuPage(BasePage):
         self.timer.start(REFRESH_INTERVAL_MS)
 
         root.addStretch(1)
+
     def tick(self):
         y = psutil.cpu_percent()
         self.series.append(self.x, y)
+        # Обновляем частоту и температуру «в реальном времени»
+        freq = None
+        try:
+            f = psutil.cpu_freq()
+            freq = f.current if f else None
+        except Exception:
+            pass
+        if freq:
+            self._freq_label.setText(f"Частота: {freq:.0f} МГц")
+
+        temp = get_cpu_temperature()
+        if temp is not None:
+            self._temp_label.setText(f"Температура: {temp:.1f} °C")
         from config import HISTORY_LENGTH
 
         if self.series.count() > HISTORY_LENGTH:

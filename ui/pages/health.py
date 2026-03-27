@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QFrame,
 )
 
-from core.system_health import get_system_health
+from core.system_health import get_system_health, get_health_history
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
 
@@ -53,7 +53,7 @@ def _parse_disk_pct(val: str) -> float:
 
 
 def _enrich_advice(advice: list, details: list) -> list:
-    """Добавляет конкретику в советы: диск, %, и т.д."""
+    """Добавляет конкретику в советы и текстовые ссылки на разделы."""
     result = []
     for tip in advice:
         tip_lower = tip.lower()
@@ -70,13 +70,13 @@ def _enrich_advice(advice: list, details: list) -> list:
                     relevant_disks.append(d)
             if relevant_disks:
                 parts = [f"{d['component']} ({d['value']})" for d in relevant_disks]
-                tip = f"{tip.rstrip('.,')} — {', '.join(parts)}."
+                tip = f"{tip.rstrip('.,')} — {', '.join(parts)} (см. раздел «Память»)."
             result.append(tip)
         # Совет про CPU — добавляем текущий %
         elif "процессор" in tip_lower or "cpu" in tip_lower:
             cpu_d = next((d for d in details if d.get("component") == "CPU"), None)
             if cpu_d and _is_valid_value(cpu_d.get("value")):
-                tip = f"{tip.rstrip('.,')} (сейчас {cpu_d['value']})."
+                tip = f"{tip.rstrip('.,')} (сейчас {cpu_d['value']}, см. раздел «CPU»)."
             result.append(tip)
         # Совет про ОЗУ — добавляем %
         elif "озу" in tip_lower or ("память" in tip_lower and "диск" not in tip_lower):
@@ -84,13 +84,17 @@ def _enrich_advice(advice: list, details: list) -> list:
             if not ram_d:
                 ram_d = next((d for d in details if (d.get("component") or "").startswith("Память")), None)
             if ram_d and _is_valid_value(ram_d.get("value")):
-                tip = f"{tip.rstrip('.,')} (сейчас {ram_d['value']})."
+                tip = f"{tip.rstrip('.,')} (сейчас {ram_d['value']}, см. раздел «Память»)."
             result.append(tip)
         # Совет про батарею — добавляем %
         elif "батаре" in tip_lower or "заряд" in tip_lower:
             bat_d = next((d for d in details if d.get("component") == "Батарея"), None)
             if bat_d and _is_valid_value(bat_d.get("value")):
-                tip = f"{tip.rstrip('.,')} (сейчас {bat_d['value']})."
+                tip = f"{tip.rstrip('.,')} (сейчас {bat_d['value']}, см. раздел «Батарея»)."
+            result.append(tip)
+        # Сеть
+        elif "сеть" in tip_lower or "подключен" in tip_lower or "интернет" in tip_lower:
+            tip = f"{tip.rstrip('.,')} (см. раздел «Сеть»)."
             result.append(tip)
         else:
             result.append(tip)
@@ -172,6 +176,26 @@ class HealthPage(BasePage):
             row_heading.addWidget(lbl_heading)
             row_heading.addStretch()
             lay.addLayout(row_heading)
+
+            # История проверок (последние 5)
+            history = get_health_history(limit=5)
+            if history:
+                hist_label = QLabel("История проверок:")
+                hist_label.setStyleSheet("font-weight:bold; margin-top:6px;")
+                lay.addWidget(hist_label)
+                for row in history:
+                    ts = row.get("ts", "")
+                    st = STATUS_HEADING.get(row.get("status"), row.get("status"))
+                    # Красим по статусу
+                    if row.get("status") == "error":
+                        col = COLORS["error"]
+                    elif row.get("status") == "warning":
+                        col = COLORS["warning"]
+                    else:
+                        col = COLORS["success"]
+                    lbl_hist = QLabel(f"{ts}: {st}")
+                    lbl_hist.setStyleSheet(f"color:{col}; font-size:10px;")
+                    lay.addWidget(lbl_hist)
 
             # Рекомендации (полезные советы на основе анализа)
             if advice:

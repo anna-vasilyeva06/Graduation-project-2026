@@ -2,6 +2,8 @@
 ML-модуль оценки состояния системы: рассматривает CPU, GPU, память, батарею,
 диски и сеть как элементы одной системы и выносит общий вердикт — исправна или нет.
 """
+import datetime
+import json
 import os
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +18,27 @@ DISK_OK = 90
 DISK_BAD = 95
 BATTERY_LOW = 20
 BATTERY_CRITICAL = 10
+
+_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "health_history.jsonl")
+
+
+def get_health_history_path() -> str:
+    """Полный путь к файлу журнала проверок здоровья системы."""
+    return _HISTORY_PATH
+
+
+def append_health_history(status: str) -> None:
+    """Добавляет запись о проверке здоровья системы в историю (jsonl-файл)."""
+    rec = {
+        "ts": datetime.datetime.now().isoformat(timespec="seconds"),
+        "status": status,
+    }
+    try:
+        with open(_HISTORY_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        # История — вспомогательная функция, не должна ломать основную логику
+        pass
 
 
 def _safe_disk_percent(mount: str) -> Optional[float]:
@@ -247,6 +270,12 @@ def get_system_health() -> Dict[str, Any]:
     else:
         message = "Система исправна: все ключевые компоненты в норме."
         summary = "Продолжайте работу. Рекомендуется периодически проверять состояние дисков и памяти."
+
+    # Записываем факт проверки в историю (по итоговому статусу правил)
+    try:
+        append_health_history(worst)
+    except Exception:
+        pass
 
     # Оценка по предобученной модели (без записи и переобучения)
     ml_info: Optional[Dict[str, Any]] = None

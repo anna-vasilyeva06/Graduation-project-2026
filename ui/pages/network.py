@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QLabel,
     QGroupBox,
@@ -8,6 +8,9 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QPushButton,
 )
+
+import psutil
+import time
 
 from core.network import get_network_info, ping_host, check_port
 from ui.pages.base import BasePage
@@ -134,7 +137,25 @@ class NetworkPage(BasePage):
 
         root.addWidget(adv_box)
 
+        root.addSpacing(10)
+
+        # Текущая скорость (суммарно по всем интерфейсам)
+        self._speed_label = QLabel("Текущая скорость: —")
+        self._speed_label.setToolTip("Оценка суммарной скорости входящего и исходящего трафика по всем интерфейсам")
+        root.addWidget(self._speed_label)
+
         root.addStretch()
+
+        # Исходные значения счётчиков для вычисления скорости
+        try:
+            self._prev_counters = psutil.net_io_counters()
+        except Exception:
+            self._prev_counters = None
+        self._prev_time = time.time()
+
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._update_speed)
+        self._timer.start(1000)
 
     def _do_ping(self):
         host = self._host_input.text().strip()
@@ -156,4 +177,35 @@ class NetworkPage(BasePage):
         else:
             self._result_label.setText(f"✗ {msg}")
             self._result_label.setStyleSheet(f"color:{COLORS['error']}; margin-top:4px;")
+
+    def _update_speed(self):
+        """Обновляет текст с примерной текущей скоростью сети (Мбит/с)."""
+        if self._prev_counters is None:
+            try:
+                self._prev_counters = psutil.net_io_counters()
+            except Exception:
+                return
+            self._prev_time = time.time()
+            return
+
+        try:
+            cur = psutil.net_io_counters()
+        except Exception:
+            return
+
+        now = time.time()
+        dt = now - self._prev_time
+        if dt <= 0:
+            return
+
+        d_recv = max(0, cur.bytes_recv - self._prev_counters.bytes_recv)
+        d_sent = max(0, cur.bytes_sent - self._prev_counters.bytes_sent)
+
+        total_bits = (d_recv + d_sent) * 8.0
+        mbit_per_s = total_bits / dt / 1e6
+
+        self._speed_label.setText(f"Текущая скорость: {mbit_per_s:.2f} Мбит/с (вх+исх)")
+
+        self._prev_counters = cur
+        self._prev_time = now
 

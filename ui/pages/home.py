@@ -37,8 +37,10 @@ class HomePage(BasePage):
         add_row(grid_sys, 2, "ОС", info.get("os", "—"))
         add_row(grid_sys, 3, "Архитектура", info.get("architecture", "—"))
         add_row(grid_sys, 4, "MAC-адрес", info.get("mac", "—"))
-        add_row(grid_sys, 5, "Время последней загрузки", info.get("boot_time", "—"))
-        add_row(grid_sys, 6, "Время работы системы", info.get("uptime", "—"))
+        add_row(grid_sys, 5, "BIOS / UEFI", info.get("bios", "—"))
+        add_row(grid_sys, 6, "Последнее обновление Windows", info.get("last_update", "—"))
+        add_row(grid_sys, 7, "Время последней загрузки", info.get("boot_time", "—"))
+        add_row(grid_sys, 8, "Время работы системы", info.get("uptime", "—"))
 
         root.addWidget(box_system)
         root.addSpacing(16)

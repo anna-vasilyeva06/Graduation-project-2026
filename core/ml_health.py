@@ -4,14 +4,17 @@
 Идея:
   - Собираем «признаки» (CPU %, RAM %, диск %, батарея, сеть) и «метку» (норма / предупреждение / проблема)
     по правилам (пороги). Это наши данные для обучения.
-  - Обучаем модель (логистическая регрессия / softmax) предсказывать метку по признакам.
+  - Обучаем модель (ординарная логистическая регрессия) предсказывать метку по признакам.
   - Модель учится на накопленных данных; со временем прогноз может учитывать ваши привычные нагрузки.
 
 Математика (упрощённо):
   - Признаки x = [cpu, ram, disk, battery_ok, network_ok] (числа 0–1).
-  - Для каждого класса k: оценка = b[k] + сумма W[k][j] * x[j].
-  - Вероятности: softmax(оценки). Предсказание = класс с максимальной вероятностью.
-  - Обучение: градиентный спуск по функции потерь (перекрёстная энтропия).
+  - Классы упорядочены: 0 < 1 < 2.
+  - Используем cumulative logit:
+      P(y <= k) = sigmoid(theta[k] - w^T x), k=0..1.
+  - Из кумулятивных вероятностей получаем вероятности классов:
+      p0 = P(y <= 0), p1 = P(y <= 1) - P(y <= 0), p2 = 1 - P(y <= 1).
+  - Обучение: градиентный спуск по бинарной кросс-энтропии для двух порогов.
 """
 import json
 import math
@@ -28,6 +31,7 @@ MODEL_PATH = os.path.join(_DIR, "ml_health_model.json")
 
 N_FEATURES = 5   # cpu, ram, disk, battery_ok, network_ok
 N_CLASSES = 3    # 0=норма, 1=предупреждение, 2=проблема
+N_THRESHOLDS = N_CLASSES - 1
 MIN_SAMPLES_TO_TRAIN = 25
 EPOCHS = 50
 LEARNING_RATE = 0.1
@@ -160,61 +164,110 @@ def generate_synthetic_samples(n: int, seed: Optional[int] = 42) -> List[Dict[st
     return out
 
 
-def _softmax(scores: List[float]) -> List[float]:
-    """Softmax: превращает оценки в вероятности (сумма = 1)."""
-    m = max(scores)
-    exp = [math.exp(s - m) for s in scores]
-    s = sum(exp)
-    return [e / s for e in exp]
+def _sigmoid(z: float) -> float:
+    """Численно устойчивый сигмоид."""
+    if z >= 0:
+        ez = math.exp(-z)
+        return 1.0 / (1.0 + ez)
+    ez = math.exp(z)
+    return ez / (1.0 + ez)
 
 
-def _forward(W: List[List[float]], b: List[float], x: List[float]) -> List[float]:
-    """Прямой проход: оценки по классам, затем softmax → вероятности."""
-    scores = [b[k] + sum(W[k][j] * x[j] for j in range(len(x))) for k in range(N_CLASSES)]
-    return _softmax(scores)
+def _ordinal_forward(w: List[float], theta: List[float], x: List[float]) -> List[float]:
+    """
+    Прямой проход для ordinal logit.
+    Возвращает вероятности классов [p0, p1, p2].
+    """
+    score = sum(w[j] * x[j] for j in range(len(x)))
+    c0 = _sigmoid(theta[0] - score)  # P(y <= 0)
+    c1 = _sigmoid(theta[1] - score)  # P(y <= 1)
+
+    # Гарантируем монотонность CDF, иначе могут появляться отрицательные вероятности
+    if c1 < c0:
+        c1 = c0
+
+    p0 = max(0.0, min(1.0, c0))
+    p1 = max(0.0, min(1.0, c1 - c0))
+    p2 = max(0.0, min(1.0, 1.0 - c1))
+    s = p0 + p1 + p2
+    if s <= 0:
+        return [1 / 3, 1 / 3, 1 / 3]
+    return [p0 / s, p1 / s, p2 / s]
 
 
 def predict_with_model(features: List[float], model: Dict[str, Any]) -> Tuple[int, List[float]]:
     """
     Предсказание модели: класс (0/1/2) и вероятности по классам.
-    model = {"W": [[...], ...], "b": [...]}
+    Поддерживает:
+      - новый формат (ordinal): {"model_type":"ordinal_logit","w":[...],"theta":[...]}
+      - старый формат (softmax): {"W":[[...],...],"b":[...]}
     """
-    W = model["W"]
-    b = model["b"]
-    probs = _forward(W, b, features)
+    # Новый формат
+    if "w" in model and "theta" in model:
+        probs = _ordinal_forward(model["w"], model["theta"], features)
+        return int(probs.index(max(probs))), probs
+
+    # Legacy-формат для обратной совместимости
+    W = model.get("W")
+    b = model.get("b")
+    if W is None or b is None:
+        return 0, [1 / 3, 1 / 3, 1 / 3]
+    scores = [b[k] + sum(W[k][j] * features[j] for j in range(len(features))) for k in range(N_CLASSES)]
+    m = max(scores)
+    exp = [math.exp(s - m) for s in scores]
+    s = sum(exp)
+    probs = [e / s for e in exp]
     return int(probs.index(max(probs))), probs
 
 
 def train_model(samples: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    Обучает модель по списку примеров [{"features": [...], "label": 0|1|2}, ...].
-    Логистическая регрессия (softmax) + градиентный спуск.
-    Возвращает словарь {"W", "b"} или None при ошибке.
+    Обучает ordinal logistic regression (cumulative logit) по примерам.
+    Возвращает словарь модели:
+      {"model_type":"ordinal_logit","w":[...],"theta":[...]}
     """
     if len(samples) < MIN_SAMPLES_TO_TRAIN:
         return None
 
-    # Инициализация весов: маленькие случайные числа
+    # Инициализация: общий вектор весов и два порога theta0 < theta1
     random.seed(42)
-    W = [[random.uniform(-0.1, 0.1) for _ in range(N_FEATURES)] for _ in range(N_CLASSES)]
-    b = [random.uniform(-0.1, 0.1) for _ in range(N_CLASSES)]
+    w = [random.uniform(-0.1, 0.1) for _ in range(N_FEATURES)]
+    theta = [-0.5, 0.5]
 
-    for epoch in range(EPOCHS):
+    for _ in range(EPOCHS):
         order = list(range(len(samples)))
         random.shuffle(order)
         for i in order:
             s = samples[i]
             x = s["features"]
             label = s["label"]
-            probs = _forward(W, b, x)
-            # Градиент для softmax + cross-entropy: (probs - one_hot)
-            d_scores = [probs[k] - (1.0 if k == label else 0.0) for k in range(N_CLASSES)]
-            for k in range(N_CLASSES):
-                for j in range(N_FEATURES):
-                    W[k][j] -= LEARNING_RATE * d_scores[k] * x[j]
-                b[k] -= LEARNING_RATE * d_scores[k]
 
-    return {"W": W, "b": b}
+            score = sum(w[j] * x[j] for j in range(N_FEATURES))
+
+            # Для каждого порога k учим бинарную цель I(y <= k)
+            for k in range(N_THRESHOLDS):
+                t = 1.0 if label <= k else 0.0
+                z = theta[k] - score
+                p = _sigmoid(z)
+                # dL/dz = p - t (BCE), z = theta - w*x
+                dz = p - t
+
+                # Градиенты и шаг
+                theta[k] -= LEARNING_RATE * dz
+                for j in range(N_FEATURES):
+                    w[j] -= LEARNING_RATE * (-dz * x[j])
+
+            # Поддерживаем порядок порогов theta0 < theta1
+            if theta[0] >= theta[1]:
+                mid = (theta[0] + theta[1]) / 2.0
+                theta[0] = mid - 1e-3
+                theta[1] = mid + 1e-3
+
+    return {
+        "model_type": "ordinal_logit",
+        "w": w,
+        "theta": theta,
+    }
 
 
 def load_data() -> List[Dict[str, Any]]:
