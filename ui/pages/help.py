@@ -1,14 +1,13 @@
 import re
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QVBoxLayout, QTextBrowser
+from PySide6.QtWidgets import QVBoxLayout, QTextBrowser, QFrame
 
 from ui.pages.base import BasePage
+from ui.widgets import PageHeader
 
 
 HELP_HTML = """
-<b>Руководство пользователя</b><br><br>
-
 <b>Назначение приложения</b><br>
 Приложение предназначено для комплексного анализа состояния персонального компьютера
 и подключённой периферии. <br><br>
@@ -61,7 +60,17 @@ class HelpPage(BasePage):
         super().__init__()
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
+
+        main_layout.addWidget(
+            PageHeader("Руководство", "Описание разделов и интерфейса приложения.")
+        )
+
+        card = QFrame()
+        card.setObjectName("helpCard")
+        card_lay = QVBoxLayout(card)
+        card_lay.setContentsMargins(0, 0, 0, 0)
 
         self.browser = QTextBrowser()
         self.browser.setOpenExternalLinks(False)
@@ -75,7 +84,8 @@ class HelpPage(BasePage):
         self.browser.setReadOnly(True)
         self.browser.setTextInteractionFlags(Qt.NoTextInteraction)
 
-        main_layout.addWidget(self.browser)
+        card_lay.addWidget(self.browser)
+        main_layout.addWidget(card)
 
         self._highlight_timer = None
 

@@ -1,31 +1,32 @@
 """
-Стиль Liquid Glass / Frutiger Aero.
-Светлые тона, прозрачность, градиенты, стеклянные поверхности, минимализм.
+Стиль Liquid Glass / Frutiger Aero — углублённая версия:
+градиенты, карточки, типографика, акцентная навигация.
 """
 
-# Цветовая палитра — Liquid Glass: прозрачность, оттенки неба и воды
+# Цветовая палитра
 COLORS = {
-    "bg_main": "#eef5fb",           # Основной фон
-    "bg_surface": "rgba(255, 255, 255, 140)",   # Стекло — полупрозрачные карточки
-    "bg_sidebar": "rgba(220, 235, 250, 160)",   # Стеклянная боковая панель
-    "bg_input": "rgba(255, 255, 255, 180)",    # Поля ввода как стекло
-    "border": "rgba(170, 200, 230, 120)",      # Границы
-    "border_light": "rgba(200, 220, 240, 80)",  # Светлые границы
-    "accent": "#4a9fd9",            # Акцент (голубой)
-    "accent_hover": "#5eb0e8",      # Акцент при наведении
-    "glass_highlight": "rgba(255, 255, 255, 0.5)",  # Блик на стекле
-    "text": "#2c3e50",              # Основной текст
-    "text_secondary": "#6b7c8d",    # Вторичный текст
-    "success": "#22c55e",           # Успех (зелёный)
-    "success_soft": "rgba(34, 197, 94, 38)",    # Мягкий зелёный фон
-    "warning": "#f59e0b",           # Предупреждение (янтарный)
-    "warning_soft": "rgba(245, 158, 11, 31)",   # Мягкий янтарный
-    "error": "#ef4444",             # Ошибка (красный)
-    "error_soft": "rgba(239, 68, 68, 31)",      # Мягкий красный
+    "bg_main": "#e8f0fa",
+    "bg_surface": "rgba(255, 255, 255, 165)",
+    "bg_sidebar": "rgba(215, 232, 252, 150)",
+    "bg_input": "rgba(255, 255, 255, 200)",
+    "border": "rgba(140, 175, 215, 140)",
+    "border_light": "rgba(190, 210, 235, 100)",
+    "accent": "#1e88d4",
+    "accent_hover": "#3a9fe8",
+    "accent_soft": "rgba(30, 136, 212, 0.12)",
+    "glass_highlight": "rgba(255, 255, 255, 0.55)",
+    "text": "#1a2b3d",
+    "text_secondary": "#5a6d82",
+    "success": "#16a34a",
+    "success_soft": "rgba(22, 163, 74, 0.12)",
+    "warning": "#d97706",
+    "warning_soft": "rgba(217, 119, 6, 0.12)",
+    "error": "#dc2626",
+    "error_soft": "rgba(220, 38, 38, 0.12)",
 }
 
-# Шрифт — минималистичный, читаемый
-FONT_FAMILY = '"Segoe UI Variable", "Segoe UI", "Inter", "SF Pro Display", sans-serif'
+# Дублирует семейство из setup_app_font (шрифт задаётся в Python, не только здесь)
+FONT_FAMILY = '"Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", sans-serif'
 
 STYLESHEET = f"""
 /* === Глобальные настройки === */
@@ -33,42 +34,111 @@ QWidget {{
     background-color: transparent;
     color: {COLORS["text"]};
     font-family: {FONT_FAMILY};
+    font-size: 13px;
 }}
 
-/* === Метки и заголовки — без фона, без выделения === */
 QLabel {{
     background-color: transparent;
     selection-background-color: transparent;
 }}
 
-/* === Приветствие пользователя — в одну строку === */
 QLabel#welcomeLabel {{
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
     color: {COLORS["text"]};
     white-space: nowrap;
 }}
 
-/* === Центральная область === */
+/* Заголовок страницы */
+QLabel#pageTitle {{
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: {COLORS["text"]};
+}}
+
+QLabel#pageSubtitle {{
+    font-size: 13px;
+    font-weight: normal;F
+    color: {COLORS["text_secondary"]};
+    max-width: 720px;
+}}
+
+/* Карточки KPI */
+QFrame#metricCard {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255, 255, 255, 230), stop:1 rgba(245, 250, 255, 200));
+    border: 1px solid {COLORS["border_light"]};
+    border-radius: 16px;
+}}
+
+QLabel#metricCardTitle {{
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: {COLORS["text_secondary"]};
+}}
+
+QLabel#metricCardValue {{
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: {COLORS["text"]};
+}}
+
+QLabel#metricCardHint {{
+    font-size: 12px;
+    color: {COLORS["text_secondary"]};
+}}
+
+/* Верхняя панель */
+QFrame#topBar {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255, 255, 255, 200), stop:1 rgba(235, 245, 255, 120));
+    border: 1px solid {COLORS["border_light"]};
+    border-radius: 14px;
+}}
+
 QWidget#centralWidget {{
     background: transparent;
 }}
 
-/* === Главное окно — Frutiger Aero градиент (небо/вода) === */
 QMainWindow {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #e8f4fc, stop:0.3 #e0eef8, stop:0.7 #d8e8f4, stop:1 #d0e2f0);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #e4f0fb, stop:0.35 #dceaf8, stop:0.65 #d4e4f4, stop:1 #c8dcf0);
 }}
 
-/* === Боковая панель — стекло, контур, тень (через QGraphicsDropShadowEffect) === */
+/* Боковая навигация */
 QListWidget#sidebarNav {{
-    background-color: rgba(210, 228, 248, 100);
-    border: 1px solid rgba(140, 170, 210, 180);
-    border-radius: 14px;
-    padding: 12px;
+    background-color: rgba(200, 225, 250, 95);
+    border: 1px solid rgba(130, 170, 215, 160);
+    border-radius: 16px;
+    padding: 10px 8px;
     outline: none;
+    font-size: 16px;
 }}
+QListWidget#sidebarNav::item {{
+    padding: 10px 12px;
+    border-radius: 11px;
+    margin: 2px 4px;
+    min-height: 48px;
+}}
+QListWidget#sidebarNav::item:hover {{
+    background-color: rgba(255, 255, 255, 140);
+}}
+QListWidget#sidebarNav::item:selected {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 rgba(255, 255, 255, 220), stop:1 rgba(220, 238, 255, 200));
+    border: 1px solid rgba(30, 136, 212, 0.35);
+    color: {COLORS["text"]};
+    font-weight: 600;
+}}
+QListWidget#sidebarNav::item:selected:!active {{
+    background-color: rgba(255, 255, 255, 210);
+}}
+
 QListWidget {{
     background-color: {COLORS["bg_sidebar"]};
     border: 1px solid {COLORS["border_light"]};
@@ -87,82 +157,105 @@ QListWidget::item:hover {{
 QListWidget::item:selected {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 rgba(255, 255, 255, 200), stop:1 rgba(220, 238, 255, 180));
-    border: 1px solid rgba(74, 159, 217, 0.4);
+    border: 1px solid rgba(30, 136, 212, 0.35);
     color: {COLORS["accent"]};
 }}
-QListWidget::item:selected:!active {{
-    background-color: rgba(255, 255, 255, 204);
-}}
 
-/* === Поле поиска — стеклянный эффект === */
 QLineEdit {{
     background-color: {COLORS["bg_input"]};
     border: 1px solid {COLORS["border"]};
     border-radius: 12px;
     padding: 10px 14px;
-    selection-background-color: rgba(74, 159, 217, 0.3);
+    selection-background-color: rgba(30, 136, 212, 0.25);
 }}
 QLineEdit:focus {{
     border-color: {COLORS["accent"]};
-    background-color: rgba(255, 255, 255, 220);
+    background-color: rgba(255, 255, 255, 235);
 }}
 QLineEdit:hover {{
     border-color: {COLORS["accent"]};
 }}
 
-/* === Кнопки — стеклянные === */
 QPushButton {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(255, 255, 255, 200), stop:1 rgba(235, 245, 255, 170));
+        stop:0 rgba(255, 255, 255, 220), stop:1 rgba(230, 242, 255, 180));
     border: 1px solid {COLORS["border"]};
     border-radius: 12px;
     padding: 10px 18px;
     min-height: 22px;
+    font-weight: 500;
 }}
 QPushButton:hover {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(255, 255, 255, 230), stop:1 rgba(220, 238, 255, 200));
+        stop:0 rgba(255, 255, 255, 245), stop:1 rgba(210, 235, 255, 220));
     border-color: {COLORS["accent"]};
 }}
 QPushButton:pressed {{
-    background-color: rgba(200, 220, 240, 180);
+    background-color: rgba(190, 215, 240, 200);
 }}
 
-/* === Группы (карточки) — Liquid Glass эффект === */
+/* Карточки: заголовок — QLabel#sectionTitle внутри, не QGroupBox::title */
 QGroupBox {{
     background-color: {COLORS["bg_surface"]};
-    border: 1px solid {COLORS["border_light"]};
-    border-radius: 14px;
-    margin-top: 20px;
-    padding-top: 24px;
-    padding-left: 18px;
-    padding-right: 18px;
-    padding-bottom: 18px;
-    font-weight: bold;
+    border: 1px solid {COLORS["border"]};
+    border-radius: 18px;
+    margin-top: 0px;
+    margin-bottom: 10px;
+    padding-top: 16px;
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-bottom: 20px;
+    font-weight: normal;
+    font-size: 13px;
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 16px;
-    top: 4px;
-    padding: 4px 12px;
-    background-color: transparent;
+    height: 0px;
+    width: 0px;
+    padding: 0px;
+    margin: 0px;
+    color: transparent;
 }}
 
-/* === Прогресс-бары — стеклянный градиент === */
-QProgressBar {{
-    background-color: rgba(200, 220, 240, 100);
+QLabel#sectionTitle {{
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: {COLORS["text"]};
+    padding: 4px 0 14px 0;
+    margin: 0px;
+}}
+
+/* Обёртка графика — как у QGroupBox / карточек */
+QFrame#chartCard {{
+    background-color: {COLORS["bg_surface"]};
+    border: 1px solid {COLORS["border"]};
+    border-radius: 18px;
+    margin-bottom: 10px;
+}}
+QFrame#chartCard QChartView {{
+    background: transparent;
     border: none;
+}}
+
+QProgressBar {{
+    border: 1px solid rgba(175, 200, 230, 0.95);
     border-radius: 10px;
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(248, 251, 255, 1), stop:1 rgba(228, 236, 248, 0.95));
+    min-height: 15px;
+    max-height: 17px;
     text-align: center;
 }}
 QProgressBar::chunk {{
+    margin: 3px;
+    border-radius: 7px;
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #a0d8f5, stop:0.4 #78c4ec, stop:0.7 #58b0e0, stop:1 #4a9fd9);
-    border-radius: 10px;
+        stop:0 #5eb4f0, stop:0.4 #2d9fe8, stop:1 #1565c0);
+    border: 1px solid rgba(20, 90, 160, 0.25);
 }}
 
-/* === Числовой ввод === */
 QSpinBox {{
     background-color: {COLORS["bg_input"]};
     border: 1px solid {COLORS["border"]};
@@ -174,23 +267,31 @@ QSpinBox:focus {{
     border-color: {COLORS["accent"]};
 }}
 
-/* === Текстовое поле (обратная связь) — стекло === */
 QTextEdit {{
-    background-color: rgba(255, 255, 255, 160);
+    background-color: rgba(255, 255, 255, 175);
     border: 1px solid {COLORS["border"]};
     border-radius: 12px;
     padding: 12px;
 }}
 
-/* === Текстовый браузер — стекло === */
 QTextBrowser {{
-    background-color: rgba(255, 255, 255, 130);
+    background-color: rgba(255, 255, 255, 145);
     border: 1px solid {COLORS["border_light"]};
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 14px;
+    padding: 22px;
 }}
 
-/* === Область прокрутки === */
+QFrame#helpCard {{
+    background: rgba(255, 255, 255, 160);
+    border: 1px solid {COLORS["border_light"]};
+    border-radius: 16px;
+}}
+QFrame#helpCard QTextBrowser {{
+    border: none;
+    background: transparent;
+    padding: 8px 4px;
+}}
+
 QScrollArea {{
     border: none;
     background-color: transparent;
@@ -207,7 +308,7 @@ QScrollBar:vertical {{
 }}
 QScrollBar::handle:vertical {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #b8d4e8, stop:0.5 #a0c4dc, stop:1 #90b8d4);
+        stop:0 #b0d0e8, stop:0.5 #98c0dc, stop:1 #88b4d4);
     border-radius: 5px;
     min-height: 30px;
 }}
@@ -218,12 +319,11 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0;
 }}
 
-/* === Подсказки — стеклянные === */
 QToolTip {{
     font-size: 12px;
     font-weight: normal;
     padding: 10px 12px;
-    background-color: rgba(255, 255, 255, 200);
+    background-color: rgba(255, 255, 255, 220);
     border: 1px solid {COLORS["border"]};
     border-radius: 8px;
     color: {COLORS["text"]};
@@ -232,5 +332,8 @@ QToolTip {{
 
 
 def apply_theme(app: "QApplication") -> None:
-    """Применяет тему Liquid Glass к приложению."""
+    """Применяет тему и базовый шрифт к приложению."""
+    from ui.theme.fonts import setup_app_font
+
+    setup_app_font(app)
     app.setStyleSheet(STYLESHEET)

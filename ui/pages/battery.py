@@ -1,6 +1,8 @@
 from PySide6.QtWidgets import QVBoxLayout, QLabel, QProgressBar
 from PySide6.QtCore import Qt
 from ui.pages.base import BasePage
+from ui.widgets import PageHeader
+
 
 class BatteryPage(BasePage):
     def __init__(self):
@@ -8,15 +10,24 @@ class BatteryPage(BasePage):
 
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
-        root.setSpacing(6)
-        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(12)
+        root.setContentsMargins(16, 16, 16, 16)
+
+        root.addWidget(
+            PageHeader(
+                "Батарея",
+                "Заряд и режим питания (для ноутбуков и планшетов).",
+            )
+        )
 
         from core.battery import get_battery
 
         b = get_battery()
         if not b:
             lbl_no = QLabel("Батарея не обнаружена")
-            lbl_no.setToolTip("На стационарных ПК батарея отсутствует. Раздел актуален для ноутбуков и планшетов")
+            lbl_no.setToolTip(
+                "На стационарных ПК батарея отсутствует. Раздел актуален для ноутбуков и планшетов"
+            )
             root.addWidget(lbl_no)
             return
 

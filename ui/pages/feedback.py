@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.pages.base import BasePage
+from ui.widgets import PageHeader, section_title
 
 FEEDBACK_EMAIL = "app.system@gmail.com"
 FEEDBACK_SUBJECT = "Обратная связь — IT Analytics"
@@ -34,13 +35,15 @@ class FeedbackPage(BasePage):
 
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
-        root.setContentsMargins(15, 15, 15, 15)
-        root.setSpacing(10)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(12)
 
-        title = QLabel("Обратная связь")
-        title.setStyleSheet("font-weight:bold; font-size:14px")
-        root.addWidget(title)
-        root.addSpacing(12)
+        root.addWidget(
+            PageHeader(
+                "Обратная связь",
+                "Сообщение откроется в выбранном веб-клиенте почты.",
+            )
+        )
 
         info = QLabel(
             "Напишите сообщение и выберите почтовый сервис — откроется веб-интерфейс "
@@ -49,8 +52,10 @@ class FeedbackPage(BasePage):
         info.setWordWrap(True)
         root.addWidget(info)
 
-        box = QGroupBox("Написать письмо")
+        box = QGroupBox()
+        box.setTitle("")
         lay = QVBoxLayout(box)
+        lay.addWidget(section_title("Написать письмо"))
         self._text = QTextEdit()
         self._text.setPlaceholderText("Введите текст письма...")
         self._text.setPlainText(_get_body_template())

@@ -6,16 +6,25 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QGroupBox
 
 from ui.pages.base import BasePage
+from ui.widgets import PageHeader, section_title
+
 
 class MemoryPage(BasePage):
     def __init__(self):
         super().__init__()
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
-        root.setSpacing(4)
-        root.setContentsMargins(12,12,12,12)
+        root.setSpacing(10)
+        root.setContentsMargins(16, 16, 16, 16)
 
         from core.memory import get_memory, get_largest_paths
+
+        root.addWidget(
+            PageHeader(
+                "Память",
+                "ОЗУ, диски и крупные папки и файлы.",
+            )
+        )
 
         mem = get_memory()
         lbl_ram = QLabel("<b>Оперативная память</b>")
@@ -103,9 +112,11 @@ class MemoryPage(BasePage):
                 title_drive.setToolTip("Корневой путь, с которого выполнен анализ крупных папок и файлов")
                 root.addWidget(title_drive)
 
-                box_dirs = QGroupBox("Крупные папки")
+                box_dirs = QGroupBox()
+                box_dirs.setTitle("")
                 box_dirs.setToolTip("Папки, занимающие больше всего места на диске. Отсортированы по размеру")
                 lay_dirs = QVBoxLayout(box_dirs)
+                lay_dirs.addWidget(section_title("Крупные папки"))
                 lay_dirs.setSpacing(4)
 
                 if dirs:
@@ -120,9 +131,11 @@ class MemoryPage(BasePage):
 
                 root.addWidget(box_dirs)
 
-                box_files = QGroupBox("Крупные файлы")
+                box_files = QGroupBox()
+                box_files.setTitle("")
                 box_files.setToolTip("Отдельные файлы с наибольшим размером. Помогает найти кандидатов на удаление")
                 lay_files = QVBoxLayout(box_files)
+                lay_files.addWidget(section_title("Крупные файлы"))
                 lay_files.setSpacing(4)
 
                 if files:

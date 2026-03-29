@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from core.system_health import get_system_health
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
+from ui.widgets import PageHeader, section_title
 
 
 def _status_indicator(color: str, size: int = 10) -> QWidget:
@@ -105,13 +106,15 @@ class HealthPage(BasePage):
 
         self._root = QVBoxLayout(self)
         self._root.setAlignment(Qt.AlignTop)
-        self._root.setSpacing(12)
-        self._root.setContentsMargins(12, 12, 12, 12)
+        self._root.setSpacing(14)
+        self._root.setContentsMargins(16, 16, 16, 16)
 
-        title = QLabel("Здоровье системы")
-        title.setStyleSheet("font-size:18px; font-weight:bold;")
-        self._root.addWidget(title)
-        self._root.addSpacing(16)
+        self._root.addWidget(
+            PageHeader(
+                "Здоровье системы",
+                "Оценка состояния ПК, рекомендации и показатели по компонентам.",
+            )
+        )
 
         self._box_health = None
         self._refresh_health_block()
@@ -149,10 +152,11 @@ class HealthPage(BasePage):
                 advice = [summary]
             advice = _enrich_advice(advice, details)
 
-            self._box_health = QGroupBox("Состояние компьютера")
+            self._box_health = QGroupBox()
+            self._box_health.setTitle("")
             lay = QVBoxLayout(self._box_health)
             lay.setSpacing(12)
-            lay.setContentsMargins(4, 8, 4, 4)
+            lay.addWidget(section_title("Состояние компьютера"))
 
             # Главный вердикт — крупно и понятно
             heading = STATUS_HEADING.get(status, status)
@@ -213,9 +217,11 @@ class HealthPage(BasePage):
 
             self._root.insertWidget(1, self._box_health)
         except Exception as e:
-            self._box_health = QGroupBox("Состояние компьютера")
+            self._box_health = QGroupBox()
+            self._box_health.setTitle("")
             self._root.insertWidget(1, self._box_health)
-            self._box_health.setLayout(QVBoxLayout())
-            self._box_health.layout().addWidget(
+            err_lay = QVBoxLayout(self._box_health)
+            err_lay.addWidget(section_title("Состояние компьютера"))
+            err_lay.addWidget(
                 QLabel("Не удалось оценить состояние. Ошибка: " + str(e))
             )

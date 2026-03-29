@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from core.network import get_network_info, ping_host, check_port
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
+from ui.widgets import PageHeader, section_title
 
 
 class NetworkPage(BasePage):
@@ -20,14 +21,15 @@ class NetworkPage(BasePage):
 
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
-        root.setSpacing(12)
-        root.setContentsMargins(12, 12, 12, 12)
+        root.setSpacing(14)
+        root.setContentsMargins(16, 16, 16, 16)
 
-        title = QLabel("Сеть")
-        title.setStyleSheet("font-size:18px; font-weight:bold;")
-        title.setToolTip("Активные сетевые подключения, IP-адреса, скорость интерфейсов и проверка доступности хостов")
-        root.addWidget(title)
-        root.addSpacing(16)
+        root.addWidget(
+            PageHeader(
+                "Сеть",
+                "Интерфейсы, адреса, скорость и проверка ping / порта.",
+            )
+        )
 
         # Активные интерфейсы
         interfaces_label = QLabel("Активные подключения")
@@ -44,12 +46,10 @@ class NetworkPage(BasePage):
             root.addWidget(QLabel("Нет активных сетевых подключений"))
         else:
             for iface in infos:
-                box = QGroupBox(iface.get("name", "—"))
-                box.setStyleSheet(
-                    "QGroupBox { padding-top: 22px; } "
-                    "QGroupBox::title { subcontrol-origin: margin; left: 12px; top: 4px; padding: 4px 10px; }"
-                )
+                box = QGroupBox()
+                box.setTitle("")
                 layout = QVBoxLayout(box)
+                layout.addWidget(section_title(iface.get("name", "—")))
                 layout.setSpacing(8)
 
                 # Тип и статус
@@ -97,9 +97,11 @@ class NetworkPage(BasePage):
         adv_label.setToolTip("Ping — проверка доступности по сети. Порт — проверка, открыт ли указанный TCP-порт")
         root.addWidget(adv_label)
 
-        adv_box = QGroupBox("Проверка хоста или узла")
+        adv_box = QGroupBox()
+        adv_box.setTitle("")
         adv_box.setToolTip("Укажите IP или домен для проверки доступности (ping) или проверки открытого TCP-порта")
         adv_lay = QVBoxLayout(adv_box)
+        adv_lay.addWidget(section_title("Проверка хоста или узла"))
         adv_lay.setSpacing(8)
 
         row1 = QHBoxLayout()

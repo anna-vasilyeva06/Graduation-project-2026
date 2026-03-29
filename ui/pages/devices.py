@@ -2,25 +2,31 @@ from PySide6.QtWidgets import QVBoxLayout, QLabel, QGroupBox
 import wmi
 
 from ui.pages.base import BasePage
+from ui.widgets import PageHeader, section_title
+
 
 class DevicesPage(BasePage):
     def __init__(self):
         super().__init__()
 
         root = QVBoxLayout(self)
-        root.setSpacing(12)
+        root.setSpacing(14)
+        root.setContentsMargins(16, 16, 16, 16)
 
-        title = QLabel("Подключённые устройства")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        title.setToolTip("Мыши, клавиатуры, принтеры и Bluetooth-устройства, сопряжённые с компьютером")
-        root.addWidget(title)
-        root.addSpacing(16)
+        root.addWidget(
+            PageHeader(
+                "Периферия",
+                "Активные устройства ввода и вывода и ранее сопряжённые по Bluetooth.",
+            )
+        )
 
         pc = wmi.WMI()
 
-        active_box = QGroupBox("Подключено и используется сейчас")
+        active_box = QGroupBox()
+        active_box.setTitle("")
         active_box.setToolTip("Устройства ввода и вывода, которые сейчас активны (мышь, клавиатура, принтеры)")
         active_layout = QVBoxLayout(active_box)
+        active_layout.addWidget(section_title("Подключено и используется сейчас"))
 
         found = False
 
@@ -57,9 +63,11 @@ class DevicesPage(BasePage):
 
         root.addWidget(active_box)
 
-        bt_box = QGroupBox("Ранее сопряжённые Bluetooth-устройства")
+        bt_box = QGroupBox()
+        bt_box.setTitle("")
         bt_box.setToolTip("Список устройств, которые когда-либо подключались по Bluetooth к этому ПК")
         bt_layout = QVBoxLayout(bt_box)
+        bt_layout.addWidget(section_title("Ранее сопряжённые Bluetooth-устройства"))
 
         try:
             bluetooth_devices = [
