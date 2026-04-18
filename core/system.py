@@ -1,19 +1,61 @@
 import datetime
+import os
 import platform
 import socket
-import psutil
 import uuid
-import os
+
+import psutil
+
+
+def _total_disk_gb_wmi() -> int:
+    """Запасной подсчёт на Windows, если psutil не дал ни одного успешного тома."""
+    try:
+        import wmi
+
+        c = wmi.WMI()
+        total = 0
+        for d in c.Win32_LogicalDisk():
+            try:
+                if d.Size is None:
+                    continue
+                dt = int(d.DriveType or 0)
+                if dt not in (2, 3):
+                    continue
+                total += int(d.Size)
+            except (TypeError, ValueError):
+                continue
+        return total
+    except Exception:
+        return 0
+
 
 def get_total_disk_gb():
-    total = 0
-    for p in psutil.disk_partitions(all=False):
+    """
+    Суммарный объём локальных томов (фиксированные + съёмные), без сетевых и CD.
+    Возвращает число ГБ или None, если данных нет.
+    """
+    total_bytes = 0
+    for p in psutil.disk_partitions(all=True):
+        mp = p.mountpoint
+        if not mp:
+            continue
+        opts = (p.opts or "").lower()
+        if "cdrom" in opts or "remote" in opts or "network" in opts:
+            continue
         try:
-            usage = psutil.disk_usage(p.mountpoint)
-            total += usage.total
-        except:
-            pass
-    return round(total/1e9,2)
+            if platform.system() == "Windows" and not os.path.exists(mp):
+                continue
+            u = psutil.disk_usage(mp)
+            total_bytes += u.total
+        except (OSError, PermissionError, FileNotFoundError, SystemError):
+            continue
+
+    if total_bytes <= 0 and platform.system() == "Windows":
+        total_bytes = _total_disk_gb_wmi()
+
+    if total_bytes <= 0:
+        return None
+    return round(total_bytes / 1e9, 2)
 
 def get_system_info():
     boot_ts = psutil.boot_time()

@@ -49,11 +49,11 @@ class NetworkPage(BasePage):
                 box = QGroupBox()
                 box.setTitle("")
                 layout = QVBoxLayout(box)
-                layout.addWidget(section_title(iface.get("name", "—")))
+                layout.addWidget(section_title(iface.get("name", "-")))
                 layout.setSpacing(8)
 
                 # Тип и статус
-                conn_type = iface.get("type", "—")
+                conn_type = iface.get("type", "-")
                 layout.addWidget(QLabel(f"Тип: {conn_type}"))
                 layout.addWidget(QLabel("Статус: подключено"))
 
@@ -92,9 +92,9 @@ class NetworkPage(BasePage):
                 root.addWidget(box)
 
         # --- Продвинутые: проверка доступности ---
-        adv_label = QLabel("Проверка доступности (для продвинутых пользователей)")
+        adv_label = QLabel("Проверка доступности")
         adv_label.setStyleSheet("font-weight:bold; margin-top:20px; margin-bottom:8px;")
-        adv_label.setToolTip("Ping — проверка доступности по сети. Порт — проверка, открыт ли указанный TCP-порт")
+        adv_label.setToolTip("Ping - проверка доступности по сети. Порт - проверка, открыт ли указанный TCP-порт")
         root.addWidget(adv_label)
 
         adv_box = QGroupBox()

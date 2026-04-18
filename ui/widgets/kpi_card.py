@@ -24,13 +24,31 @@ class KpiCard(QFrame):
         tl.setObjectName("metricCardTitle")
         lay.addWidget(tl)
 
-        vl = QLabel(value)
-        vl.setObjectName("metricCardValue")
-        vl.setWordWrap(True)
-        lay.addWidget(vl)
+        self._value_label = QLabel(value)
+        self._value_label.setObjectName("metricCardValue")
+        self._value_label.setWordWrap(True)
+        lay.addWidget(self._value_label)
 
+        self._hint_label: QLabel | None = None
         if subtitle:
-            sl = QLabel(subtitle)
-            sl.setObjectName("metricCardHint")
-            sl.setWordWrap(True)
-            lay.addWidget(sl)
+            self._hint_label = QLabel(subtitle)
+            self._hint_label.setObjectName("metricCardHint")
+            self._hint_label.setWordWrap(True)
+            lay.addWidget(self._hint_label)
+
+    def set_metric(self, value: str, subtitle: str | None = None) -> None:
+        """Обновляет значение; subtitle=None — не трогать подпись; '' — скрыть подпись."""
+        self._value_label.setText(value)
+        if subtitle is None:
+            return
+        if subtitle:
+            if self._hint_label is None:
+                lay = self.layout()
+                self._hint_label = QLabel(subtitle)
+                self._hint_label.setObjectName("metricCardHint")
+                self._hint_label.setWordWrap(True)
+                lay.addWidget(self._hint_label)
+            self._hint_label.setText(subtitle)
+            self._hint_label.setVisible(True)
+        elif self._hint_label is not None:
+            self._hint_label.setVisible(False)

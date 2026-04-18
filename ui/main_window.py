@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
 
         top_frame = QFrame()
         top_frame.setObjectName("topBar")
+        top_frame.setFrameShape(QFrame.Shape.NoFrame)
         top = QHBoxLayout(top_frame)
         top.setContentsMargins(16, 12, 16, 12)
         top.setSpacing(12)
@@ -90,13 +91,13 @@ class MainWindow(QMainWindow):
         self.welcome = QLabel(f"{greeting}, {user}!")
         self.welcome.setObjectName("welcomeLabel")
         self.welcome.setToolTip(
-            "Текущий пользователь Windows. Переключение разделов — через левую панель"
+            "Текущий пользователь Windows. Переключение разделов - через левую панель"
         )
         self.search = QLineEdit()
         self.search.setMaximumWidth(280)
-        self.search.setPlaceholderText("Поиск по странице…")
+        self.search.setPlaceholderText("Поиск")
         self.search.setToolTip(
-            "Поиск по текущей странице. Enter — переход в Руководство и поиск по тексту"
+            "Поиск. Enter - переход в Руководство и поиск по тексту"
         )
         top.addWidget(self.welcome)
         top.addStretch()
@@ -168,26 +169,44 @@ class MainWindow(QMainWindow):
             self.stack_widgets.append(scroll)
         body.addWidget(self.stack, 1)
 
+        self.stack.currentChanged.connect(self._sync_chart_page_monitors)
+
         self.sidebar.currentRowChanged.connect(self.switch_page)
+        if self.sidebar.count() > 0:
+            self.sidebar.setCurrentRow(0)
+            self.switch_page(0)
         self.search.textChanged.connect(self.search_text)
         self.search.returnPressed.connect(self._search_enter)
 
         self._suggest = QListWidget(self)
         self._suggest.setWindowFlags(Qt.Popup)
         self._suggest.hide()
+        self._selection_fix_done = False
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._disable_text_selection()
+        # Один раз: обход всего дерева виджетов дорогой, не повторять при каждом показе окна
+        if not self._selection_fix_done:
+            self._selection_fix_done = True
+            self._disable_text_selection()
 
     def _disable_text_selection(self):
         for w in self.findChildren(QLabel):
             w.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
             w.setAutoFillBackground(False)
 
+    def _sync_chart_page_monitors(self, stack_index: int) -> None:
+        """CPU/GPU: интервал опроса выше на активной вкладке, в фоне реже (графики всегда копятся)."""
+        for i, page in enumerate(self.pages):
+            fn = getattr(page, "set_monitoring_active", None)
+            if callable(fn):
+                fn(i == stack_index)
+
     def switch_page(self, i):
         if 0 <= i < len(self.stack_widgets):
             self.stack.setCurrentIndex(i)
+            # currentChanged не срабатывает, если индекс не изменился — синхронизируем таймеры всегда
+            self._sync_chart_page_monitors(i)
 
     def search_text(self, t):
         self._suggest.hide()

@@ -28,7 +28,7 @@ class MemoryPage(BasePage):
 
         mem = get_memory()
         lbl_ram = QLabel("<b>Оперативная память</b>")
-        lbl_ram.setToolTip("ОЗУ используется программами. При нехватке система использует файл подкачки — работа замедляется")
+        lbl_ram.setToolTip("ОЗУ используется программами. При нехватке система использует файл подкачки - работа замедляется")
         root.addWidget(lbl_ram)
         root.addSpacing(6)
 
@@ -122,9 +122,9 @@ class MemoryPage(BasePage):
                 if dirs:
                     for d in dirs:
                         p = str(d.get("path", ""))
-                        sz = d.get("size_gb", "—")
+                        sz = d.get("size_gb", "-")
                         lay_dirs.addWidget(
-                            QLabel(f"• {pretty_rel(p)} — {sz} GB")
+                            QLabel(f"• {pretty_rel(p)} - {sz} GB")
                         )
                 else:
                     lay_dirs.addWidget(QLabel("Нет данных по папкам"))
@@ -141,9 +141,9 @@ class MemoryPage(BasePage):
                 if files:
                     for f in files:
                         p = str(f.get("path", ""))
-                        sz = f.get("size_gb", "—")
+                        sz = f.get("size_gb", "-")
                         lay_files.addWidget(
-                            QLabel(f"• {pretty_rel(p)} — {sz} GB")
+                            QLabel(f"• {pretty_rel(p)} - {sz} GB")
                         )
                 else:
                     lay_files.addWidget(QLabel("Нет данных по файлам"))

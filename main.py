@@ -7,7 +7,6 @@ from ui.main_window import MainWindow
 from ui.theme import apply_theme
 
 
-# Отключаем выделение текста в QLabel
 _orig_label_init = QLabel.__init__
 def _label_init(self, *args, **kwargs):
     _orig_label_init(self, *args, **kwargs)
@@ -17,7 +16,6 @@ QLabel.__init__ = _label_init
 
 
 class NoSelectionFilter(QObject):
-    """Глобальный фильтр: сбрасывает выделение при любом клике."""
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.MouseButtonPress:
             fw = QApplication.instance().focusWidget()
@@ -38,7 +36,6 @@ class NoSelectionFilter(QObject):
             pass
 
 
-# Отключаем выделение всего текста при фокусе
 def _deselect_on_focus(widget):
     QTimer.singleShot(0, widget.deselect)
 
@@ -58,7 +55,6 @@ QSpinBox.focusInEvent = _spinbox_focus_in
 
 
 def _wrap_tooltip(text: str, max_len: int = 55) -> str:
-    """Разбивает длинный текст на строки по словам (без HTML)."""
     if not text or not isinstance(text, str):
         return text
     words = text.split()
@@ -76,7 +72,6 @@ def _wrap_tooltip(text: str, max_len: int = 55) -> str:
     return "\n".join(lines)
 
 
-# Патч setToolTip — все подсказки разбиваются на блоки
 _orig_set_tooltip = QWidget.setToolTip
 QWidget.setToolTip = lambda self, text: _orig_set_tooltip(self, _wrap_tooltip(text) if text else "")
 

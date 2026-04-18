@@ -16,7 +16,7 @@ class BatteryPage(BasePage):
         root.addWidget(
             PageHeader(
                 "Батарея",
-                "Заряд и режим питания (для ноутбуков и планшетов).",
+                "Заряд и режим питания.",
             )
         )
 
@@ -26,7 +26,7 @@ class BatteryPage(BasePage):
         if not b:
             lbl_no = QLabel("Батарея не обнаружена")
             lbl_no.setToolTip(
-                "На стационарных ПК батарея отсутствует. Раздел актуален для ноутбуков и планшетов"
+                "На стационарных ПК батарея отсутствует. Раздел актуален для ноутбуков"
             )
             root.addWidget(lbl_no)
             return
@@ -45,10 +45,10 @@ class BatteryPage(BasePage):
 
         root.addWidget(bar)
         lbl_pct = QLabel(f"Заряд: {percent}%")
-        lbl_pct.setToolTip("Текущий уровень заряда батареи (0–100%)")
+        lbl_pct.setToolTip("Текущий уровень заряда батареи (0-100%)")
         root.addWidget(lbl_pct)
         lbl_st = QLabel("Состояние: " + ("Подключено к сети" if plugged else "Работа от батареи"))
-        lbl_st.setToolTip("Подключено к сети — батарея заряжается. Работа от батареи — питание от аккумулятора")
+        lbl_st.setToolTip("Подключено к сети - батарея заряжается. Работа от батареи - питание от аккумулятора")
         root.addWidget(lbl_st)
 
         mins_left = b.get("Time left min")

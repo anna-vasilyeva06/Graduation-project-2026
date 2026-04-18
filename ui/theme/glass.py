@@ -43,9 +43,9 @@ QLabel {{
 }}
 
 QLabel#welcomeLabel {{
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
     color: {COLORS["text"]};
     white-space: nowrap;
 }}
@@ -60,7 +60,7 @@ QLabel#pageTitle {{
 
 QLabel#pageSubtitle {{
     font-size: 13px;
-    font-weight: normal;F
+    font-weight: normal;
     color: {COLORS["text_secondary"]};
     max-width: 720px;
 }}
@@ -70,7 +70,7 @@ QFrame#metricCard {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 rgba(255, 255, 255, 230), stop:1 rgba(245, 250, 255, 200));
     border: 1px solid {COLORS["border_light"]};
-    border-radius: 16px;
+    border-radius: 8px;
 }}
 
 QLabel#metricCardTitle {{
@@ -93,12 +93,11 @@ QLabel#metricCardHint {{
     color: {COLORS["text_secondary"]};
 }}
 
-/* Верхняя панель */
+/* Верхняя панель — без отдельной «карточки», вровень с фоном окна */
 QFrame#topBar {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(255, 255, 255, 200), stop:1 rgba(235, 245, 255, 120));
-    border: 1px solid {COLORS["border_light"]};
-    border-radius: 14px;
+    background: transparent;
+    border: none;
+    border-radius: 0px;
 }}
 
 QWidget#centralWidget {{
@@ -114,14 +113,14 @@ QMainWindow {{
 QListWidget#sidebarNav {{
     background-color: rgba(200, 225, 250, 95);
     border: 1px solid rgba(130, 170, 215, 160);
-    border-radius: 16px;
+    border-radius: 8px;
     padding: 10px 8px;
     outline: none;
     font-size: 16px;
 }}
 QListWidget#sidebarNav::item {{
     padding: 10px 12px;
-    border-radius: 11px;
+    border-radius: 5px;
     margin: 2px 4px;
     min-height: 48px;
 }}
@@ -142,13 +141,13 @@ QListWidget#sidebarNav::item:selected:!active {{
 QListWidget {{
     background-color: {COLORS["bg_sidebar"]};
     border: 1px solid {COLORS["border_light"]};
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 10px;
     outline: none;
 }}
 QListWidget::item {{
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 4px;
     margin: 2px 0;
 }}
 QListWidget::item:hover {{
@@ -164,7 +163,7 @@ QListWidget::item:selected {{
 QLineEdit {{
     background-color: {COLORS["bg_input"]};
     border: 1px solid {COLORS["border"]};
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 10px 14px;
     selection-background-color: rgba(30, 136, 212, 0.25);
 }}
@@ -180,7 +179,7 @@ QPushButton {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 rgba(255, 255, 255, 220), stop:1 rgba(230, 242, 255, 180));
     border: 1px solid {COLORS["border"]};
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 10px 18px;
     min-height: 22px;
     font-weight: 500;
@@ -198,7 +197,7 @@ QPushButton:pressed {{
 QGroupBox {{
     background-color: {COLORS["bg_surface"]};
     border: 1px solid {COLORS["border"]};
-    border-radius: 18px;
+    border-radius: 9px;
     margin-top: 0px;
     margin-bottom: 10px;
     padding-top: 16px;
@@ -231,7 +230,7 @@ QLabel#sectionTitle {{
 QFrame#chartCard {{
     background-color: {COLORS["bg_surface"]};
     border: 1px solid {COLORS["border"]};
-    border-radius: 18px;
+    border-radius: 9px;
     margin-bottom: 10px;
 }}
 QFrame#chartCard QChartView {{
@@ -241,7 +240,7 @@ QFrame#chartCard QChartView {{
 
 QProgressBar {{
     border: 1px solid rgba(175, 200, 230, 0.95);
-    border-radius: 10px;
+    border-radius: 5px;
     background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 rgba(248, 251, 255, 1), stop:1 rgba(228, 236, 248, 0.95));
     min-height: 15px;
@@ -250,7 +249,7 @@ QProgressBar {{
 }}
 QProgressBar::chunk {{
     margin: 3px;
-    border-radius: 7px;
+    border-radius: 3px;
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
         stop:0 #5eb4f0, stop:0.4 #2d9fe8, stop:1 #1565c0);
     border: 1px solid rgba(20, 90, 160, 0.25);
@@ -259,7 +258,7 @@ QProgressBar::chunk {{
 QSpinBox {{
     background-color: {COLORS["bg_input"]};
     border: 1px solid {COLORS["border"]};
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 8px 12px;
     min-height: 22px;
 }}
@@ -270,21 +269,21 @@ QSpinBox:focus {{
 QTextEdit {{
     background-color: rgba(255, 255, 255, 175);
     border: 1px solid {COLORS["border"]};
-    border-radius: 12px;
+    border-radius: 6px;
     padding: 12px;
 }}
 
 QTextBrowser {{
     background-color: rgba(255, 255, 255, 145);
     border: 1px solid {COLORS["border_light"]};
-    border-radius: 14px;
+    border-radius: 7px;
     padding: 22px;
 }}
 
 QFrame#helpCard {{
     background: rgba(255, 255, 255, 160);
     border: 1px solid {COLORS["border_light"]};
-    border-radius: 16px;
+    border-radius: 8px;
 }}
 QFrame#helpCard QTextBrowser {{
     border: none;
@@ -303,13 +302,13 @@ QScrollBar:horizontal {{
 QScrollBar:vertical {{
     background-color: rgba(210, 220, 240, 90);
     width: 10px;
-    border-radius: 5px;
+    border-radius: 3px;
     margin: 0;
 }}
 QScrollBar::handle:vertical {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
         stop:0 #b0d0e8, stop:0.5 #98c0dc, stop:1 #88b4d4);
-    border-radius: 5px;
+    border-radius: 3px;
     min-height: 30px;
 }}
 QScrollBar::handle:vertical:hover {{
@@ -319,13 +318,14 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0;
 }}
 
+/* Прямоугольные подсказки (скругление на Windows с нативным стилем часто не работает) */
 QToolTip {{
     font-size: 12px;
     font-weight: normal;
-    padding: 10px 12px;
-    background-color: rgba(255, 255, 255, 220);
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 245);
     border: 1px solid {COLORS["border"]};
-    border-radius: 8px;
+    border-radius: 0px;
     color: {COLORS["text"]};
 }}
 """

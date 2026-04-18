@@ -34,7 +34,7 @@ class DevicesPage(BasePage):
             mice = pc.Win32_PointingDevice()
             if mice:
                 active_layout.addWidget(
-                    QLabel(f"• Указательные устройства (мышь / тачпад): {len(mice)}")
+                    QLabel(f"Указательные устройства (мышь / тачпад): {len(mice)}")
                 )
                 found = True
         except Exception:
@@ -42,7 +42,7 @@ class DevicesPage(BasePage):
 
         try:
             if pc.Win32_Keyboard():
-                active_layout.addWidget(QLabel("• Клавиатура"))
+                active_layout.addWidget(QLabel("Клавиатура"))
                 found = True
         except Exception:
             pass
@@ -53,7 +53,7 @@ class DevicesPage(BasePage):
                 if any(x in name for x in ["pdf", "xps", "fax"]):
                     continue
                 if not p.WorkOffline:
-                    active_layout.addWidget(QLabel(f"• Принтер: {p.Name}"))
+                    active_layout.addWidget(QLabel(f"Принтер: {p.Name}"))
                     found = True
         except Exception:
             pass
@@ -65,7 +65,7 @@ class DevicesPage(BasePage):
 
         bt_box = QGroupBox()
         bt_box.setTitle("")
-        bt_box.setToolTip("Список устройств, которые когда-либо подключались по Bluetooth к этому ПК")
+        bt_box.setToolTip("Список устройств, которые когда-либо подключались по Bluetooth к этому компьютеру")
         bt_layout = QVBoxLayout(bt_box)
         bt_layout.addWidget(section_title("Ранее сопряжённые Bluetooth-устройства"))
 

@@ -35,6 +35,12 @@ STATUS_HEADING = {
     "error": "Требуется внимание",
 }
 
+def _max_severity_status(a: str, b: str) -> str:
+    order = {"ok": 0, "warning": 1, "error": 2}
+    ra = order.get(a, 0)
+    rb = order.get(b, 0)
+    return a if ra >= rb else b
+
 
 def _is_valid_value(val: str) -> bool:
     """Проверяет, что value содержит осмысленные данные (например, процент)."""
@@ -93,6 +99,11 @@ def _enrich_advice(advice: list, details: list) -> list:
             if bat_d and _is_valid_value(bat_d.get("value")):
                 tip = f"{tip.rstrip('.,')} (сейчас {bat_d['value']})."
             result.append(tip)
+        elif "gpu" in tip_lower or "видеокарт" in tip_lower:
+            gpu_d = next((d for d in details if d.get("component") == "GPU"), None)
+            if gpu_d and _is_valid_value(gpu_d.get("value")):
+                tip = f"{tip.rstrip('.,')} (сейчас {gpu_d['value']})."
+            result.append(tip)
         else:
             result.append(tip)
     return result
@@ -112,7 +123,7 @@ class HealthPage(BasePage):
         self._root.addWidget(
             PageHeader(
                 "Здоровье системы",
-                "Оценка состояния ПК, рекомендации и показатели по компонентам.",
+                "Правила по компонентам и прогноз модели (ординарная логистическая регрессия, 6 признаков).",
             )
         )
 
@@ -140,16 +151,18 @@ class HealthPage(BasePage):
             summary = health.get("summary", "")
             ml = health.get("ml")
 
-            # Итоговый статус: по модели, если есть, иначе по правилам
+            # Итоговый статус: правила + ML. ML не должен "улучшать" критические случаи.
+            status = health.get("status", "ok")
             if ml and ml.get("model_trained") and ml.get("ml_status"):
-                status = ml["ml_status"]
-            else:
-                status = health.get("status", "ok")
+                status = _max_severity_status(status, ml["ml_status"])
 
-            # Рекомендации: из ML-модуля (анализ признаков) или summary
-            advice = (ml or {}).get("advice") or []
-            if not advice and summary:
-                advice = [summary]
+            # Рекомендации: summary по правилам + советы ML (если есть)
+            advice = list((ml or {}).get("advice") or [])
+            if summary:
+                if not advice:
+                    advice = [summary]
+                else:
+                    advice = [summary] + advice
             advice = _enrich_advice(advice, details)
 
             self._box_health = QGroupBox()
