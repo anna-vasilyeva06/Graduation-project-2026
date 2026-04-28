@@ -6,15 +6,34 @@ import psutil
 
 from core.gpu import get_gpu, get_gpu_stats
 from ui.pages.base import BasePage
+<<<<<<< Updated upstream
+=======
+from ui.widgets import (
+    add_page_header,
+    apply_monitoring_interval,
+    build_perf_area_chart_card,
+    fit_list_height,
+    make_page_root,
+    section_title,
+    seed_area_series_baseline,
+)
+from ui.theme.charts import update_perf_chart_x_range
+>>>>>>> Stashed changes
 
 
 class GpuPage(BasePage):
     def __init__(self):
         super().__init__()
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
         root.setSpacing(6)
         root.setContentsMargins(12, 12, 12, 12)
+=======
+        root = make_page_root(self, spacing=10)
+
+        add_page_header(root, "GPU", "Видеокарта, график загрузки и топ процессов")
+>>>>>>> Stashed changes
 
         lbl_gpu = QLabel("<b>Видеокарта</b>")
         lbl_gpu.setToolTip("Графический процессор: модель, загрузка, температура и использование видеопамяти")
@@ -31,6 +50,7 @@ class GpuPage(BasePage):
         lbl_load.setToolTip("Процент использования видеокарты. На Windows загрузка GPU определяется приближённо")
         root.addWidget(lbl_load)
 
+<<<<<<< Updated upstream
         self._temp_label = QLabel("Температура: нет данных")
         self._temp_label.setToolTip("Температура видеокарты (по данным драйвера, если доступна)")
         root.addWidget(self._temp_label)
@@ -64,6 +84,76 @@ class GpuPage(BasePage):
     def tick(self):
         # Пока нет кроссплатформенного счётчика GPU — приблизим через CPU
         self.series.append(self.x, psutil.cpu_percent() / 2)
+=======
+        perf = build_perf_area_chart_card(height=420)
+        self.chart = perf.chart
+        self._chart_view = perf.view
+        self.line_series = perf.line_series
+        self.base_series = perf.base_series
+        self.area_series = perf.area_series
+        self.x = seed_area_series_baseline(self.line_series, self.base_series, self.chart)
+        root.addWidget(perf.card)
+
+        root.addSpacing(10)
+        box_proc = QGroupBox()
+        box_proc.setTitle("")
+        box_proc.setToolTip(
+            "По памяти GPU - данные nvidia-smi (NVIDIA). Если драйвера нет - топ по системной RAM. "
+            "По CPU - как на странице CPU."
+        )
+        lay_proc = QVBoxLayout(box_proc)
+        lay_proc.addWidget(section_title("Топ процессов"))
+        row_btn = QHBoxLayout()
+        btn_vram = QPushButton("По памяти GPU")
+        btn_cpu = QPushButton("По CPU")
+        btn_vram.clicked.connect(lambda: self._refresh_top("vram"))
+        btn_cpu.clicked.connect(lambda: self._refresh_top("cpu"))
+        row_btn.addWidget(btn_vram)
+        row_btn.addWidget(btn_cpu)
+        row_btn.addStretch()
+        lay_proc.addLayout(row_btn)
+        self._proc_list = QListWidget()
+        self._proc_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._proc_list.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._proc_list.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        lay_proc.addWidget(self._proc_list)
+        root.addWidget(box_proc)
+        QTimer.singleShot(50, lambda: self._refresh_top("vram"))
+
+        root.addStretch(1)
+
+        self._last_gpu_pct = 0.0
+        self._gpu_sample_lock = threading.Lock()
+        self._gpu_sample_inflight = False
+        self._gpu_frac_ready.connect(self._on_gpu_frac_ready)
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        from config import CHART_REFRESH_BACKGROUND_MS
+
+        self.timer.start(CHART_REFRESH_BACKGROUND_MS)
+
+    def _load_gpu_model_name(self) -> None:
+        try:
+            from core.gpu import get_gpu
+
+            gpus = get_gpu()
+            name = gpus[0]["Name"] if gpus else "Не обнаружена"
+            self._gpu_model_lbl.setText("Модель: " + str(name))
+        except Exception:
+            self._gpu_model_lbl.setText("Модель: —")
+
+    def set_monitoring_active(self, active: bool) -> None:
+        apply_monitoring_interval(self.timer, active, self.tick)
+
+    def _append_chart_point(self, y: float) -> None:
+        self.line_series.append(self.x, y)
+        self.base_series.append(self.x, 0.0)
+>>>>>>> Stashed changes
         from config import HISTORY_LENGTH
 
         if self.series.count() > HISTORY_LENGTH:
@@ -81,3 +171,30 @@ class GpuPage(BasePage):
                 self._vram_label.setText(
                     f"Память GPU: {used:.0f} / {total:.0f} МБ ({pct:.0f}%)"
                 )
+<<<<<<< Updated upstream
+=======
+        else:
+            rows, mode = get_top_gpu_vram_rows(n=10)
+            if mode == "nvidia_empty":
+                self._proc_list.addItem(
+                    "Нет процессов с выделенной памятью GPU (NVIDIA)."
+                )
+            elif mode == "nvidia":
+                for p in rows:
+                    name = (p.get("name") or "-")[:48]
+                    pid = p.get("pid", "-")
+                    mib = float(p.get("gpu_mem_mib") or 0)
+                    self._proc_list.addItem(
+                        f"{name} (PID {pid}) - GPU RAM: {mib:.0f} МиБ"
+                    )
+            else:
+                for p in rows:
+                    name = (p.get("name") or "-")[:40]
+                    pid = p.get("pid", "-")
+                    cpu = p.get("cpu") or 0
+                    mem = p.get("memory") or 0
+                    self._proc_list.addItem(
+                        f"{name} (PID {pid}) - RAM: {mem:.1f}%, CPU: {cpu:.1f}%"
+                    )
+        fit_list_height(self._proc_list)
+>>>>>>> Stashed changes

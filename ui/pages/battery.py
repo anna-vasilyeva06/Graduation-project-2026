@@ -1,16 +1,25 @@
 from PySide6.QtWidgets import QVBoxLayout, QLabel, QProgressBar
 from PySide6.QtCore import Qt
 from ui.pages.base import BasePage
+<<<<<<< Updated upstream
+=======
+from ui.widgets import add_page_header, make_page_root
+>>>>>>> Stashed changes
 
 
 class BatteryPage(BasePage):
     def __init__(self):
         super().__init__()
 
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
         root.setSpacing(6)
         root.setContentsMargins(12, 12, 12, 12)
+=======
+        root = make_page_root(self, spacing=12)
+        add_page_header(root, "Батарея", "Заряд и режим питания.")
+>>>>>>> Stashed changes
 
         from core.battery import get_battery
 

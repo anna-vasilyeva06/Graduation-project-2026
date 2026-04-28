@@ -15,12 +15,17 @@ import time
 from core.network import get_network_info, ping_host, check_port
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
+<<<<<<< Updated upstream
+=======
+from ui.widgets import add_page_header, make_page_root, section_title
+>>>>>>> Stashed changes
 
 
 class NetworkPage(BasePage):
     def __init__(self):
         super().__init__()
 
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
         root.setSpacing(12)
@@ -31,6 +36,10 @@ class NetworkPage(BasePage):
         title.setToolTip("Активные сетевые подключения, IP-адреса, скорость интерфейсов и проверка доступности хостов")
         root.addWidget(title)
         root.addSpacing(16)
+=======
+        root = make_page_root(self, spacing=14)
+        add_page_header(root, "Сеть", "Интерфейсы, адреса, скорость и проверка ping / порта.")
+>>>>>>> Stashed changes
 
         # Активные интерфейсы
         interfaces_label = QLabel("Активные подключения")

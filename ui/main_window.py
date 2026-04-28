@@ -37,9 +37,15 @@ def _get_greeting() -> str:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+<<<<<<< Updated upstream
         self.setWindowTitle("IT Analytics")
         self.resize(980, 600)
         self.setMinimumSize(800, 500)
+=======
+        self.setWindowTitle("ITMetric")
+        self.resize(1020, 640)
+        self.setMinimumSize(820, 520)
+>>>>>>> Stashed changes
 
         # центр экрана
         rect = self.frameGeometry()

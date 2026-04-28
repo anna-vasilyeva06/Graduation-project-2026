@@ -14,19 +14,41 @@ import psutil
 from core.processes import get_top_processes
 from core.cpu import get_cpu_temperature
 from ui.pages.base import BasePage
+<<<<<<< Updated upstream
+=======
+from ui.widgets import (
+    add_page_header,
+    apply_monitoring_interval,
+    build_perf_area_chart_card,
+    fit_list_height,
+    make_page_root,
+    section_title,
+    seed_area_series_baseline,
+)
+from ui.theme.charts import update_perf_chart_x_range
+>>>>>>> Stashed changes
 
 
 class CpuPage(BasePage):
     def __init__(self):
         super().__init__()
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
         root.setSpacing(6)
         root.setContentsMargins(12, 12, 12, 12)
+=======
+        root = make_page_root(self, spacing=10)
+>>>>>>> Stashed changes
 
         from core.cpu import get_cpu
 
         cpu = get_cpu()
+<<<<<<< Updated upstream
+=======
+        add_page_header(root, "CPU", "Модель, ядра, загрузка в реальном времени и топ процессов.")
+
+>>>>>>> Stashed changes
         lbl_cpu = QLabel("<b>Процессор</b>")
         lbl_cpu.setToolTip("Центральный процессор: модель, ядра, потоки и текущая загрузка в реальном времени")
         root.addWidget(lbl_cpu)
@@ -58,6 +80,7 @@ class CpuPage(BasePage):
         lbl_load.setToolTip("Процент использования процессора. Высокая загрузка (>85%) может вызывать тормоза")
         root.addWidget(lbl_load)
 
+<<<<<<< Updated upstream
         self.series = QLineSeries()
         self.chart = QChart()
         self.chart.legend().hide()
@@ -70,6 +93,16 @@ class CpuPage(BasePage):
         view = QChartView(self.chart)
         view.setFixedHeight(420)
         root.addWidget(view)
+=======
+        perf = build_perf_area_chart_card(height=420)
+        self.chart = perf.chart
+        self._chart_view = perf.view
+        self.line_series = perf.line_series
+        self.base_series = perf.base_series
+        self.area_series = perf.area_series
+        self.x = seed_area_series_baseline(self.line_series, self.base_series, self.chart)
+        root.addWidget(perf.card)
+>>>>>>> Stashed changes
 
         root.addSpacing(10)
         box_proc = QGroupBox("Топ процессов")
@@ -99,6 +132,18 @@ class CpuPage(BasePage):
 
         root.addStretch(1)
 
+<<<<<<< Updated upstream
+=======
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.tick)
+        from config import CHART_REFRESH_BACKGROUND_MS
+
+        self.timer.start(CHART_REFRESH_BACKGROUND_MS)
+
+    def set_monitoring_active(self, active: bool) -> None:
+        apply_monitoring_interval(self.timer, active, self.tick)
+
+>>>>>>> Stashed changes
     def tick(self):
         y = psutil.cpu_percent()
         self.series.append(self.x, y)
@@ -133,4 +178,11 @@ class CpuPage(BasePage):
             if sort_by == "cpu":
                 self._proc_list.addItem(f"{name} (PID {pid}) — CPU: {cpu:.1f}%, RAM: {mem:.1f}%")
             else:
+<<<<<<< Updated upstream
                 self._proc_list.addItem(f"{name} (PID {pid}) — RAM: {mem:.1f}%, CPU: {cpu:.1f}%")
+=======
+                self._proc_list.addItem(
+                    f"{name} (PID {pid}) - RAM: {mem:.1f}%, CPU: {cpu:.1f}%"
+                )
+        fit_list_height(self._proc_list)
+>>>>>>> Stashed changes

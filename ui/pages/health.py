@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from core.system_health import get_system_health, get_health_history
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
+<<<<<<< Updated upstream
 
 
 def _status_indicator(color: str, size: int = 10) -> QWidget:
@@ -26,6 +27,9 @@ def _status_indicator(color: str, size: int = 10) -> QWidget:
         }}
     """)
     return dot
+=======
+from ui.widgets import add_page_header, make_page_root, section_title, status_dot
+>>>>>>> Stashed changes
 
 # Понятные пользователю формулировки
 STATUS_HEADING = {
@@ -107,6 +111,7 @@ class HealthPage(BasePage):
     def __init__(self):
         super().__init__()
 
+<<<<<<< Updated upstream
         self._root = QVBoxLayout(self)
         self._root.setAlignment(Qt.AlignTop)
         self._root.setSpacing(12)
@@ -116,6 +121,14 @@ class HealthPage(BasePage):
         title.setStyleSheet("font-size:18px; font-weight:bold;")
         self._root.addWidget(title)
         self._root.addSpacing(16)
+=======
+        self._root = make_page_root(self, spacing=14)
+        add_page_header(
+            self._root,
+            "Здоровье системы",
+            "Правила по компонентам и прогноз модели (ординарная логистическая регрессия, 6 признаков).",
+        )
+>>>>>>> Stashed changes
 
         self._box_health = None
         self._refresh_health_block()
@@ -170,7 +183,7 @@ class HealthPage(BasePage):
             row_heading = QHBoxLayout()
             row_heading.setSpacing(8)
             ind_color = COLORS["error"] if status == "error" else (COLORS["warning"] if status == "warning" else COLORS["success"])
-            row_heading.addWidget(_status_indicator(ind_color, 12))
+            row_heading.addWidget(status_dot(ind_color, 12))
             lbl_heading = QLabel(heading)
             lbl_heading.setStyleSheet(style)
             row_heading.addWidget(lbl_heading)
@@ -203,7 +216,9 @@ class HealthPage(BasePage):
                 advice_label.setStyleSheet("font-weight:bold;")
                 lay.addWidget(advice_label)
                 for tip in advice:
-                    lay.addWidget(QLabel("• " + tip))
+                    tip_lbl = QLabel("• " + tip)
+                    tip_lbl.setWordWrap(True)
+                    lay.addWidget(tip_lbl)
                 lay.addWidget(QLabel(""))
 
             # Компоненты — простым списком
@@ -225,8 +240,9 @@ class HealthPage(BasePage):
                 row = QHBoxLayout()
                 row.setSpacing(8)
                 ind_color = COLORS["error"] if st == "error" else (COLORS["warning"] if st == "warning" else COLORS["success"])
-                row.addWidget(_status_indicator(ind_color))
+                row.addWidget(status_dot(ind_color))
                 lbl = QLabel(line)
+                lbl.setWordWrap(True)
                 if st == "error":
                     lbl.setStyleSheet(f"color:{COLORS['error']};")
                 elif st == "warning":
@@ -239,7 +255,15 @@ class HealthPage(BasePage):
         except Exception as e:
             self._box_health = QGroupBox("Состояние компьютера")
             self._root.insertWidget(1, self._box_health)
+<<<<<<< Updated upstream
             self._box_health.setLayout(QVBoxLayout())
             self._box_health.layout().addWidget(
                 QLabel("Не удалось оценить состояние. Ошибка: " + str(e))
             )
+=======
+            err_lay = QVBoxLayout(self._box_health)
+            err_lay.addWidget(section_title("Состояние компьютера"))
+            err_lbl = QLabel("Не удалось оценить состояние. Ошибка: " + str(e))
+            err_lbl.setWordWrap(True)
+            err_lay.addWidget(err_lbl)
+>>>>>>> Stashed changes

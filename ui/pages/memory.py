@@ -14,11 +14,16 @@ from PySide6.QtWidgets import (
 )
 
 from ui.pages.base import BasePage
+<<<<<<< Updated upstream
+=======
+from ui.widgets import add_page_header, make_page_root, section_title
+>>>>>>> Stashed changes
 
 
 class MemoryPage(BasePage):
     def __init__(self):
         super().__init__()
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setAlignment(Qt.AlignTop)
         root.setSpacing(4)
@@ -26,6 +31,13 @@ class MemoryPage(BasePage):
         self._root = root
 
         from core.memory import get_memory
+=======
+        root = make_page_root(self, spacing=10)
+
+        from core.memory import get_memory, get_largest_paths
+
+        add_page_header(root, "Память", "ОЗУ, диски и крупные папки и файлы.")
+>>>>>>> Stashed changes
 
         mem = get_memory()
         lbl_ram = QLabel("<b>Оперативная память</b>")
@@ -38,7 +50,9 @@ class MemoryPage(BasePage):
         bar.setValue(int(mem["Usage %"]))
         bar.setTextVisible(False)
         root.addWidget(bar)
-        root.addWidget(QLabel(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB'))
+        lbl_ram_val = QLabel(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB')
+        lbl_ram_val.setWordWrap(True)
+        root.addWidget(lbl_ram_val)
 
         root.addSpacing(14)
         lbl_disk = QLabel("<b>Локальные диски</b>")
@@ -107,7 +121,13 @@ class MemoryPage(BasePage):
                 self._root.addWidget(bar)
 
         except Exception as e:
+<<<<<<< Updated upstream
             self._root.addWidget(QLabel("Ошибка получения дисков: " + str(e)))
+=======
+            err = QLabel("Ошибка получения дисков: " + str(e))
+            err.setWordWrap(True)
+            root.addWidget(err)
+>>>>>>> Stashed changes
 
     def _clear_heavy_layout(self):
         while self._heavy_layout.count():
@@ -150,7 +170,12 @@ class MemoryPage(BasePage):
                 title_drive = QLabel(f"Диск/путь: {base}")
                 title_drive.setStyleSheet("font-weight:bold; margin-top:6px;")
                 title_drive.setToolTip("Корневой путь, с которого выполнен анализ крупных папок и файлов")
+<<<<<<< Updated upstream
                 self._heavy_layout.addWidget(title_drive)
+=======
+                title_drive.setWordWrap(True)
+                root.addWidget(title_drive)
+>>>>>>> Stashed changes
 
                 box_dirs = QGroupBox("Крупные папки")
                 box_dirs.setToolTip("Папки, занимающие больше всего места на диске. Отсортированы по размеру")
@@ -160,10 +185,17 @@ class MemoryPage(BasePage):
                 if dirs:
                     for d in dirs:
                         p = str(d.get("path", ""))
+<<<<<<< Updated upstream
                         sz = d.get("size_gb", "—")
                         lay_dirs.addWidget(
                             QLabel(f"• {pretty_rel(p)} — {sz} GB")
                         )
+=======
+                        sz = d.get("size_gb", "-")
+                        l = QLabel(f"• {pretty_rel(p)} - {sz} GB")
+                        l.setWordWrap(True)
+                        lay_dirs.addWidget(l)
+>>>>>>> Stashed changes
                 else:
                     lay_dirs.addWidget(QLabel("Нет данных по папкам"))
 
@@ -177,10 +209,17 @@ class MemoryPage(BasePage):
                 if files:
                     for f in files:
                         p = str(f.get("path", ""))
+<<<<<<< Updated upstream
                         sz = f.get("size_gb", "—")
                         lay_files.addWidget(
                             QLabel(f"• {pretty_rel(p)} — {sz} GB")
                         )
+=======
+                        sz = f.get("size_gb", "-")
+                        l = QLabel(f"• {pretty_rel(p)} - {sz} GB")
+                        l.setWordWrap(True)
+                        lay_files.addWidget(l)
+>>>>>>> Stashed changes
                 else:
                     lay_files.addWidget(QLabel("Нет данных по файлам"))
 
@@ -188,7 +227,17 @@ class MemoryPage(BasePage):
 
                 note = QLabel(f"Проанализировано файлов: {scanned} (путь: {base})")
                 note.setStyleSheet("color:#666; font-size:10px")
+<<<<<<< Updated upstream
                 self._heavy_layout.addWidget(note)
 
         except Exception as e:
             self._heavy_layout.addWidget(QLabel("Ошибка анализа папок и файлов: " + str(e)))
+=======
+                note.setWordWrap(True)
+                root.addWidget(note)
+
+        except Exception as e:
+            err = QLabel("Ошибка анализа папок и файлов: " + str(e))
+            err.setWordWrap(True)
+            root.addWidget(err)
+>>>>>>> Stashed changes

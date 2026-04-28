@@ -1,5 +1,9 @@
 PySide6
 psutil
-pyqtgraph
 wmi
 py-cpuinfo
+<<<<<<< Updated upstream
+=======
+numpy
+matplotlib
+>>>>>>> Stashed changes

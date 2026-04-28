@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import psutil
 
+<<<<<<< Updated upstream
 # Пороги (в процентах или флагах)
 CPU_OK = 85
 CPU_BAD = 95
@@ -39,6 +40,20 @@ def append_health_history(status: str) -> None:
     except Exception:
         # История — вспомогательная функция, не должна ломать основную логику
         pass
+=======
+from core.health_thresholds import (
+    BATTERY_CRITICAL,
+    BATTERY_LOW,
+    CPU_BAD,
+    CPU_OK,
+    DISK_BAD,
+    DISK_OK,
+    GPU_BAD,
+    GPU_OK,
+    RAM_BAD,
+    RAM_OK,
+)
+>>>>>>> Stashed changes
 
 
 def _safe_disk_percent(mount: str) -> Optional[float]:

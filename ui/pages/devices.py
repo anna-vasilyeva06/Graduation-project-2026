@@ -2,11 +2,17 @@ from PySide6.QtWidgets import QVBoxLayout, QLabel, QGroupBox
 import wmi
 
 from ui.pages.base import BasePage
+<<<<<<< Updated upstream
+=======
+from ui.widgets import add_page_header, make_page_root, section_title
+
+>>>>>>> Stashed changes
 
 class DevicesPage(BasePage):
     def __init__(self):
         super().__init__()
 
+<<<<<<< Updated upstream
         root = QVBoxLayout(self)
         root.setSpacing(12)
 
@@ -15,6 +21,10 @@ class DevicesPage(BasePage):
         title.setToolTip("Мыши, клавиатуры, принтеры и Bluetooth-устройства, сопряжённые с компьютером")
         root.addWidget(title)
         root.addSpacing(16)
+=======
+        root = make_page_root(self, spacing=14)
+        add_page_header(root, "Периферия", "Активные устройства ввода и вывода и ранее сопряжённые по Bluetooth.")
+>>>>>>> Stashed changes
 
         pc = wmi.WMI()
 

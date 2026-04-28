@@ -24,11 +24,32 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
 
+<<<<<<< Updated upstream
 # Пути к файлам данных и модели
+=======
+from core.subprocess_utils import creationflags_no_window
+
+# Пороги синхронизированы с core/system_health.py (единый источник).
+from core.health_thresholds import (
+    BATTERY_CRITICAL,
+    BATTERY_LOW,
+    CPU_BAD,
+    CPU_OK,
+    DISK_BAD,
+    DISK_OK,
+    GPU_BAD,
+    GPU_OK,
+    RAM_BAD,
+    RAM_OK,
+)
+
+# Пути к файлам модели
+>>>>>>> Stashed changes
 _DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(_DIR, "ml_health_data.jsonl")
 MODEL_PATH = os.path.join(_DIR, "ml_health_model.json")
 
+<<<<<<< Updated upstream
 N_FEATURES = 5   # cpu, ram, disk, battery_ok, network_ok
 N_CLASSES = 3    # 0=норма, 1=предупреждение, 2=проблема
 N_THRESHOLDS = N_CLASSES - 1
@@ -36,6 +57,10 @@ MIN_SAMPLES_TO_TRAIN = 25
 EPOCHS = 50
 LEARNING_RATE = 0.1
 
+=======
+# Порядок признаков важен: он должен соответствовать весам в core/ml_health_model.json
+N_FEATURES = 6   # cpu, ram, disk, battery_ok, network_ok, gpu
+>>>>>>> Stashed changes
 
 def _safe_disk_max_percent() -> float:
     """Максимальный процент заполнения среди дисков (0–100)."""
@@ -56,6 +81,142 @@ def _safe_disk_max_percent() -> float:
     return out
 
 
+<<<<<<< Updated upstream
+=======
+def _safe_system_disk_percent() -> float:
+
+    try:
+        if os.name == "nt":
+            drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":\\"
+            u = shutil.disk_usage(drive)
+            return (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
+        u = shutil.disk_usage(os.path.abspath(os.sep))
+        return (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
+    except Exception:
+
+        return float(_safe_disk_max_percent())
+
+
+def _subprocess_no_window_flags() -> int:
+    return creationflags_no_window()
+
+
+def _windows_gpu_util_fraction() -> Optional[float]:
+
+    if os.name != "nt":
+        return None
+
+    ps = (
+        "$max=0.0; $any=$false; "
+        "try { "
+        "$samples = (Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction Stop).CounterSamples; "
+        "foreach ($s in $samples) { $any=$true; $v=[double]$s.CookedValue; if ($v -gt $max) { $max=$v } } "
+        "} catch { exit 2 }; "
+        "if (-not $any) { exit 2 }; "
+        "[Console]::Out.WriteLine($max.ToString([System.Globalization.CultureInfo]::InvariantCulture))"
+    )
+    try:
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            creationflags=_subprocess_no_window_flags(),
+        )
+        if r.returncode != 0 or not (r.stdout or "").strip():
+            return None
+        v = float((r.stdout or "").strip().splitlines()[-1].strip())
+        return min(1.0, max(0.0, v / 100.0))
+    except (ValueError, subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _nvidia_gpu_util_fraction() -> Optional[float]:
+
+    try:
+        r = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            creationflags=_subprocess_no_window_flags(),
+        )
+        if r.returncode != 0 or not (r.stdout or "").strip():
+            return None
+        mx = 0.0
+        for line in r.stdout.strip().splitlines():
+            try:
+                mx = max(mx, float(line.strip()))
+            except ValueError:
+                continue
+        return min(1.0, max(0.0, mx / 100.0))
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _gpu_feature() -> float:
+
+    u = _windows_gpu_util_fraction()
+    if u is not None:
+        return u
+    u = _nvidia_gpu_util_fraction()
+    if u is not None:
+        return u
+    try:
+        from core.gpu import get_gpu
+
+        if not get_gpu():
+            return 0.85
+    except Exception:
+        return 0.85
+    return 0.0
+
+
+def get_gpu_health_snapshot() -> Dict[str, Any]:
+
+    util = _windows_gpu_util_fraction()
+    source: Optional[str] = "windows" if util is not None else None
+    if util is None:
+        util = _nvidia_gpu_util_fraction()
+        source = "nvidia" if util is not None else None
+    names: List[str] = []
+    try:
+        from core.gpu import get_gpu
+
+        for g in get_gpu() or []:
+            n = (g.get("Name") or "").strip()
+            if n:
+                names.append(n)
+    except Exception:
+        pass
+    return {"util_fraction": util, "source": source, "names": names}
+
+
+_gpu_chart_last_t: float = -1e9
+_gpu_chart_last_frac: Optional[float] = None
+
+
+def sample_gpu_util_fraction(min_interval_s: float = 1.0) -> Optional[float]:
+
+    global _gpu_chart_last_t, _gpu_chart_last_frac
+    import time
+
+    now = time.monotonic()
+    if (now - _gpu_chart_last_t) < min_interval_s:
+        return _gpu_chart_last_frac
+    u = _windows_gpu_util_fraction()
+    if u is None:
+        u = _nvidia_gpu_util_fraction()
+    _gpu_chart_last_t = now
+    _gpu_chart_last_frac = u
+    return u
+
+
+>>>>>>> Stashed changes
 def collect_features() -> List[float]:
     """
     Собирает вектор признаков из текущего состояния системы.

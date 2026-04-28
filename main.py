@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, QTimer, QEvent, QObject
 from PySide6.QtWidgets import QApplication, QWidget, QLineEdit, QSpinBox, QLabel, QTextBrowser
 from PySide6.QtGui import QFocusEvent
 from ui.main_window import MainWindow
+from ui.icons import app_icon
 from ui.theme import apply_theme
 
 
@@ -80,9 +81,22 @@ def _wrap_tooltip(text: str, max_len: int = 55) -> str:
 _orig_set_tooltip = QWidget.setToolTip
 QWidget.setToolTip = lambda self, text: _orig_set_tooltip(self, _wrap_tooltip(text) if text else "")
 
+if sys.platform == "win32":
+    # Ensures correct taskbar grouping/icon when launched via python.exe.
+    try:
+        import ctypes  # noqa: PLC0415
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ITMetric.ITMetric")
+    except Exception:
+        pass
+
 app = QApplication(sys.argv)
 apply_theme(app)
+app.setApplicationName("ITMetric")
+app.setApplicationDisplayName("ITMetric")
+app.setWindowIcon(app_icon())
 app.installEventFilter(NoSelectionFilter(app))
 win = MainWindow()
+win.setWindowIcon(app_icon())
 win.show()
 sys.exit(app.exec())
