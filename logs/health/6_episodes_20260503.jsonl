@@ -1,0 +1,4 @@
+{"state": "error", "enter_time": "2026-05-03 18:54:18", "exit_time": "2026-05-03 19:10:39", "duration_s": 980.59921, "cause": "Память (ОЗУ): 92%"}
+{"state": "warning", "enter_time": "2026-05-03 19:10:39", "exit_time": "2026-05-03 19:16:03", "duration_s": 324.555427, "cause": "CPU: 88%"}
+{"state": "error", "enter_time": "2026-05-03 19:16:03", "exit_time": "2026-05-03 19:17:04", "duration_s": 60.919047, "cause": "CPU: 93%"}
+{"state": "warning", "enter_time": "2026-05-03 19:17:04", "exit_time": "2026-05-03 20:34:16", "duration_s": 4631.418159, "cause": "Память (ОЗУ): 86%"}

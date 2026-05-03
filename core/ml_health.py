@@ -3,7 +3,6 @@ import math
 import os
 import shutil
 import subprocess
-import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 import psutil
@@ -38,7 +37,7 @@ def _safe_disk_max_percent() -> float:
         drive, _ = os.path.splitdrive(mount)
         if not drive:
             continue
-        path = (drive.upper().rstrip(":\\") + ":\\") if os.name == "nt" else os.path.normpath(mount)
+        path = drive.upper().rstrip(":\\") + ":\\"
         try:
             u = shutil.disk_usage(path)
             pct = (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
@@ -51,11 +50,8 @@ def _safe_disk_max_percent() -> float:
 def _safe_system_disk_percent() -> float:
 
     try:
-        if os.name == "nt":
-            drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":\\"
-            u = shutil.disk_usage(drive)
-            return (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
-        u = shutil.disk_usage(os.path.abspath(os.sep))
+        drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":\\"
+        u = shutil.disk_usage(drive)
         return (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
     except Exception:
 
@@ -63,15 +59,10 @@ def _safe_system_disk_percent() -> float:
 
 
 def _subprocess_no_window_flags() -> int:
-    if sys.platform == "win32" and hasattr(subprocess, "CREATE_NO_WINDOW"):
-        return subprocess.CREATE_NO_WINDOW
-    return 0
+    return subprocess.CREATE_NO_WINDOW
 
 
 def _windows_gpu_util_fraction() -> Optional[float]:
-
-    if os.name != "nt":
-        return None
 
     ps = (
         "$max=0.0; $any=$false; "

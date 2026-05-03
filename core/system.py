@@ -43,14 +43,14 @@ def get_total_disk_gb():
         if "cdrom" in opts or "remote" in opts or "network" in opts:
             continue
         try:
-            if platform.system() == "Windows" and not os.path.exists(mp):
+            if not os.path.exists(mp):
                 continue
             u = psutil.disk_usage(mp)
             total_bytes += u.total
         except (OSError, PermissionError, FileNotFoundError, SystemError):
             continue
 
-    if total_bytes <= 0 and platform.system() == "Windows":
+    if total_bytes <= 0:
         total_bytes = _total_disk_gb_wmi()
 
     if total_bytes <= 0:

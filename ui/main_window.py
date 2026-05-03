@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QMainWindow,
@@ -14,10 +15,13 @@ from PySide6.QtWidgets import (
     QFrame,
     QStyle,
     QApplication,
+    QSystemTrayIcon,
+    QMenu,
 )
 from PySide6.QtCore import Qt, QTimer, QSize
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QAction, QIcon
 import getpass
+from typing import Optional
 
 from ui.pages.home import HomePage
 from ui.pages.health import HealthPage
@@ -31,6 +35,7 @@ from ui.pages.help import HelpPage
 from ui.pages.feedback import FeedbackPage
 from ui.icons.loader import NAV_ICON_FILES, nav_icons
 from ui.widgets.sidebar_delegate import SidebarNavDelegate
+from core.system_health import get_system_health
 
 
 def _get_greeting() -> str:
@@ -64,7 +69,10 @@ def _nav_icon_entries():
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("IT Analytics")
+        self.setWindowTitle("ITMetric")
+        self._app_icon = self._load_app_icon()
+        if not self._app_icon.isNull():
+            self.setWindowIcon(self._app_icon)
         self.resize(1020, 640)
         self.setMinimumSize(820, 520)
 
@@ -183,12 +191,181 @@ class MainWindow(QMainWindow):
         self._suggest.hide()
         self._selection_fix_done = False
 
+        # --- system notifications (tray) ---
+        self._tray: Optional[QSystemTrayIcon] = None
+        self._tray_menu: Optional[QMenu] = None
+        self._tray_act_show: Optional[QAction] = None
+        self._tray_act_quit: Optional[QAction] = None
+        self._health_watch_timer: Optional[QTimer] = None
+        self._last_health_status: str = "ok"
+        self._init_tray_and_health_watch()
+
+    def _load_app_icon(self) -> QIcon:
+        try:
+            base = os.path.dirname(os.path.abspath(__file__))
+            ico_path = os.path.join(base, "icons", "icon.ico")
+            if os.path.exists(ico_path):
+                return QIcon(ico_path)
+        except Exception:
+            pass
+        return QIcon()
+
+    def _init_tray_and_health_watch(self) -> None:
+        """В фоне следит за статусом и шлёт уведомления при warning/error."""
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
+
+        qicon = self._app_icon if self._app_icon and not self._app_icon.isNull() else QIcon()
+        if qicon.isNull():
+            style = QApplication.instance().style() if QApplication.instance() else self.style()
+            icon = style.standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+            qicon = icon if isinstance(icon, QIcon) else QIcon()
+
+        tray = QSystemTrayIcon(qicon, self)
+        tray.setToolTip("ITMetric")
+
+        # Важно хранить QMenu/QAction в self, иначе на Windows меню может "исчезать".
+        menu = QMenu()
+        menu.setObjectName("trayMenu")
+        # Тема приложения может задавать глобальный stylesheet для QMenu (тёмный фон + тёмный текст).
+        # Для трея принудительно задаём читаемые "системные" цвета через palette(...).
+        menu.setStyleSheet(
+            """
+            QMenu#trayMenu {
+                background-color: palette(window);
+                color: palette(windowText);
+                border: 1px solid palette(mid);
+            }
+            QMenu#trayMenu::item {
+                padding: 6px 22px;
+                background-color: transparent;
+                color: palette(windowText);
+            }
+            QMenu#trayMenu::item:selected {
+                background-color: palette(highlight);
+                color: palette(highlightedText);
+            }
+            QMenu#trayMenu::separator {
+                height: 1px;
+                margin: 6px 8px;
+                background: palette(mid);
+            }
+            """
+        )
+        act_show = QAction("Показать окно", self)
+        act_quit = QAction("Выход", self)
+        act_show.triggered.connect(self._show_from_tray)
+        act_quit.triggered.connect(QApplication.instance().quit)
+        menu.addAction(act_show)
+        menu.addSeparator()
+        menu.addAction(act_quit)
+
+        self._tray_menu = menu
+        self._tray_act_show = act_show
+        self._tray_act_quit = act_quit
+
+        tray.setContextMenu(self._tray_menu)
+        tray.activated.connect(self._on_tray_activated)
+        tray.show()
+
+        self._tray = tray
+
+        # Периодический опрос без участия пользователя (не зависит от активной вкладки)
+        t = QTimer(self)
+        t.setInterval(60_000)  # 60s
+        t.timeout.connect(self._poll_health_and_notify)
+        t.start()
+        self._health_watch_timer = t
+
+        # Стартовый снапшот (без уведомления)
+        self._poll_health_and_notify(silent=True)
+
+    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self._show_from_tray()
+
+    def _show_from_tray(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    @staticmethod
+    def _severity_rank(status: str) -> int:
+        return {"ok": 0, "warning": 1, "error": 2}.get(status or "ok", 0)
+
+    @staticmethod
+    def _health_message(health: dict) -> tuple[str, str]:
+        """Короткий заголовок + текст для toast/balloon."""
+        status = (health or {}).get("status") or "ok"
+        heading = {"ok": "Всё в порядке", "warning": "Есть замечания", "error": "Требуется внимание"}.get(
+            status, str(status)
+        )
+
+        details = (health or {}).get("details") or []
+        bad = []
+        for d in details:
+            st = d.get("status")
+            if st in ("warning", "error"):
+                comp = d.get("component") or "Компонент"
+                val = d.get("value") or "-"
+                reason = d.get("reason")
+                line = f"{comp}: {val}"
+                if reason:
+                    line += f" - {reason}"
+                bad.append(line)
+
+        if bad:
+            text = "\n".join(bad[:4])
+            if len(bad) > 4:
+                text += "\n…"
+        else:
+            text = (health or {}).get("summary") or ""
+        return heading, text
+
+    def _poll_health_and_notify(self, silent: bool = False) -> None:
+        if self._tray is None:
+            return
+        try:
+            health = get_system_health()
+        except Exception:
+            return
+
+        status = (health or {}).get("status") or "ok"
+        prev = self._last_health_status or "ok"
+        self._last_health_status = status
+
+        # Уведомляем только при ухудшении или входе в warning/error
+        worsened = self._severity_rank(status) > self._severity_rank(prev)
+        entered_problem = prev == "ok" and status in ("warning", "error")
+        if silent or not (worsened or entered_problem):
+            return
+
+        title, msg = self._health_message(health)
+        icon = (
+            QSystemTrayIcon.MessageIcon.Critical
+            if status == "error"
+            else QSystemTrayIcon.MessageIcon.Warning
+        )
+        # timeoutMs: 0 = по умолчанию ОС
+        self._tray.showMessage(title, msg, icon, 0)
+
     def showEvent(self, event):
         super().showEvent(event)
         # Один раз: обход всего дерева виджетов дорогой, не повторять при каждом показе окна
         if not self._selection_fix_done:
             self._selection_fix_done = True
             self._disable_text_selection()
+
+    def closeEvent(self, event):
+        # Крестик = сворачиваем в трей, приложение остаётся работать.
+        if self._tray is not None and QSystemTrayIcon.isSystemTrayAvailable():
+            event.ignore()
+            self.hide()
+            return
+        super().closeEvent(event)
 
     def _disable_text_selection(self):
         for w in self.findChildren(QLabel):
@@ -230,7 +407,18 @@ class MainWindow(QMainWindow):
         self.sidebar.setCurrentRow(8)
 
         def do_search():
-            if hasattr(self.help_page, "jump_to_text"):
-                self.help_page.jump_to_text(query)
+            mods = QApplication.keyboardModifiers()
+            if mods & Qt.KeyboardModifier.ShiftModifier:
+                fn = getattr(self.help_page, "prev_match", None)
+                if callable(fn):
+                    fn(query)
+                    return
+            fn = getattr(self.help_page, "next_match", None)
+            if callable(fn):
+                fn(query)
+                return
+            fn = getattr(self.help_page, "jump_to_text", None)
+            if callable(fn):
+                fn(query)
 
         QTimer.singleShot(300, do_search)

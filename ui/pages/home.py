@@ -11,23 +11,17 @@ from PySide6.QtWidgets import (
 
 from core.system import get_system_info
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader, KpiCard, section_title
+from ui.widgets import KpiCard, section_title
 
 
 class HomePage(BasePage):
     def __init__(self):
         super().__init__()
 
-        root = QVBoxLayout(self)
-        root.setAlignment(Qt.AlignTop)
-        root.setSpacing(18)
-        root.setContentsMargins(16, 16, 16, 16)
-
-        root.addWidget(
-            PageHeader(
-                "Главная",
-                "Сводка по системе, ресурсам и времени работы.",
-            )
+        root = self.build_root(
+            "Главная",
+            "Сводка по системе, ресурсам и времени работы.",
+            spacing=18,
         )
 
         kpi_grid = QGridLayout()
@@ -106,7 +100,7 @@ class HomePage(BasePage):
 
         self._hw_bat_lbl = QLabel("Батарея")
         self._hw_bat_lbl.setStyleSheet("color:#5a6d82;")
-        self._hw_bat_pct = QLabel("—")
+        self._hw_bat_pct = QLabel("-")
         self._hw_bat_bar = QProgressBar()
         self._hw_bat_bar.setFixedHeight(12)
         self._hw_bat_bar.setRange(0, 100)
@@ -144,16 +138,16 @@ class HomePage(BasePage):
             )
             self._card_ram.set_metric(f"{int(ram_pct)}%", hint)
         else:
-            self._card_ram.set_metric("—", "")
+            self._card_ram.set_metric("-", "")
 
         disk = info.get("total_disk_gb")
         self._card_disk.set_metric(
-            f"{disk} GB" if disk not in (None, 0) else "—",
+            f"{disk} GB" if disk not in (None, 0) else "-",
             "Логические разделы",
         )
 
         self._card_up.set_metric(
-            str(info.get("uptime", "—")).split(".")[0],
+            str(info.get("uptime", "-")).split(".")[0],
             "с последней загрузки",
         )
 
@@ -172,9 +166,9 @@ class HomePage(BasePage):
             "boot_time",
         ]
         for i, key in enumerate(keys_sys):
-            self._sys_value_labels[i].setText(str(info.get(key, "—")))
+            self._sys_value_labels[i].setText(str(info.get(key, "-")))
 
-        self._hw_cpu_value.setText(str(info.get("cpu", "—")))
+        self._hw_cpu_value.setText(str(info.get("cpu", "-")))
 
         ram_total = info.get("ram_gb")
         ram_used = info.get("ram_used_gb")

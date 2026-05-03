@@ -13,10 +13,10 @@ from PySide6.QtWidgets import (
 )
 
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader, section_title
+from ui.widgets import section_title
 
 FEEDBACK_EMAIL = "app.system@gmail.com"
-FEEDBACK_SUBJECT = "Обратная связь — IT Analytics"
+FEEDBACK_SUBJECT = "Обратная связь — ITMetric"
 
 
 def _get_body_template() -> str:
@@ -33,16 +33,10 @@ class FeedbackPage(BasePage):
     def __init__(self):
         super().__init__()
 
-        root = QVBoxLayout(self)
-        root.setAlignment(Qt.AlignTop)
-        root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(12)
-
-        root.addWidget(
-            PageHeader(
-                "Обратная связь",
-                "Сообщение откроется в выбранном веб-клиенте почты.",
-            )
+        root = self.build_root(
+            "Обратная связь",
+            "Сообщение откроется в выбранном веб-клиенте почты.",
+            spacing=12,
         )
 
         info = QLabel(

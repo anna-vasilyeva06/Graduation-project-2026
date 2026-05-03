@@ -306,13 +306,12 @@ QScrollBar:vertical {{
     margin: 0;
 }}
 QScrollBar::handle:vertical {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #b0d0e8, stop:0.5 #98c0dc, stop:1 #88b4d4);
+    background-color: rgba(150, 180, 210, 190);
     border-radius: 3px;
     min-height: 30px;
 }}
 QScrollBar::handle:vertical:hover {{
-    background-color: {COLORS["accent"]};
+    background-color: rgba(30, 136, 212, 210);
 }}
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0;

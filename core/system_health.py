@@ -29,10 +29,7 @@ def _safe_disk_percent(mount: str) -> Optional[float]:
     drive, _ = os.path.splitdrive(mount)
     if not drive:
         return None
-    if os.name == "nt":
-        path = drive.upper().rstrip(":\\") + ":\\"
-    else:
-        path = os.path.normpath(mount)
+    path = drive.upper().rstrip(":\\") + ":\\"
     try:
         u = shutil.disk_usage(path)
         total = float(u.total)
@@ -173,16 +170,11 @@ def get_system_health() -> Dict[str, Any]:
     # Тогда добавляем хотя бы системный диск, чтобы в UI всегда был пункт "Диск C:".
     if not _seen_disk_labels:
         try:
-            if os.name == "nt":
-                # SystemDrive обычно "C:"; psutil.disk_usage ожидает путь вида "C:\\"
-                sys_drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":"
-                u = shutil.disk_usage(sys_drive + "\\")
-                pct = (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
-                label = sys_drive
-            else:
-                u = shutil.disk_usage(os.path.abspath(os.sep))
-                pct = (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
-                label = "/"
+            # SystemDrive обычно "C:"; psutil.disk_usage ожидает путь вида "C:\\"
+            sys_drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":"
+            u = shutil.disk_usage(sys_drive + "\\")
+            pct = (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
+            label = sys_drive
 
             if pct >= DISK_BAD:
                 details.append({

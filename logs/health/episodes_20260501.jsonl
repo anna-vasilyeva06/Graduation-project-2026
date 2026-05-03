@@ -1,0 +1,10 @@
+{"state": "warning", "enter_time": "2026-05-01 18:31:01", "exit_time": "2026-05-01 18:37:33", "duration_s": 391.711271, "cause": "Память (ОЗУ): 86%"}
+{"state": "error", "enter_time": "2026-05-01 18:37:33", "exit_time": "2026-05-01 18:39:44", "duration_s": 131.836878, "cause": "Память (ОЗУ): 94%"}
+{"state": "warning", "enter_time": "2026-05-01 18:39:44", "exit_time": "2026-05-01 19:19:05", "duration_s": 2360.769773, "cause": "Память (ОЗУ): 94%"}
+{"state": "error", "enter_time": "2026-05-01 19:19:05", "exit_time": "2026-05-01 19:20:13", "duration_s": 67.973165, "cause": "Память (ОЗУ): 84%"}
+{"state": "warning", "enter_time": "2026-05-01 19:20:13", "exit_time": "2026-05-01 19:23:32", "duration_s": 198.504454, "cause": "Диск C:: 92%"}
+{"state": "error", "enter_time": "2026-05-01 19:23:32", "exit_time": "2026-05-01 19:24:39", "duration_s": 67.867408, "cause": "Диск C:: 91%"}
+{"state": "warning", "enter_time": "2026-05-01 19:24:39", "exit_time": "2026-05-01 19:26:52", "duration_s": 132.860929, "cause": "Диск C:: 91%"}
+{"state": "error", "enter_time": "2026-05-01 19:26:52", "exit_time": "2026-05-01 19:29:06", "duration_s": 134.141645, "cause": "Диск C:: 91%"}
+{"state": "warning", "enter_time": "2026-05-01 19:29:06", "exit_time": "2026-05-01 19:39:03", "duration_s": 596.621622, "cause": "Диск C:: 91%"}
+{"state": "error", "enter_time": "2026-05-01 19:39:03", "exit_time": "2026-05-01 19:48:41", "duration_s": 577.676897, "cause": "Диск C:: 91%"}

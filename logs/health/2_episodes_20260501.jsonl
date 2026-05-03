@@ -1,0 +1,3 @@
+{"state": "warning", "enter_time": "2026-05-01 21:31:46", "exit_time": "2026-05-01 21:32:55", "duration_s": 68.943511, "cause": "Память (ОЗУ): 94%"}
+{"state": "error", "enter_time": "2026-05-01 21:32:55", "exit_time": "2026-05-01 21:34:00", "duration_s": 64.909634, "cause": "Память (ОЗУ): 95%"}
+{"state": "warning", "enter_time": "2026-05-01 21:34:00", "exit_time": "2026-05-01 21:56:27", "duration_s": 1347.544711, "cause": "Память (ОЗУ): 91%"}

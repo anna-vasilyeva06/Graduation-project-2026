@@ -2,22 +2,18 @@ from PySide6.QtWidgets import QVBoxLayout, QLabel, QGroupBox
 import wmi
 
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader, section_title
+from ui.widgets import section_title
 
 
 class DevicesPage(BasePage):
     def __init__(self):
         super().__init__()
 
-        root = QVBoxLayout(self)
-        root.setSpacing(14)
-        root.setContentsMargins(16, 16, 16, 16)
-
-        root.addWidget(
-            PageHeader(
-                "Периферия",
-                "Активные устройства ввода и вывода и ранее сопряжённые по Bluetooth.",
-            )
+        root = self.build_root(
+            "Периферия",
+            "Активные устройства ввода и вывода и ранее сопряжённые по Bluetooth.",
+            spacing=14,
+            align_top=False,
         )
 
         pc = wmi.WMI()
@@ -79,7 +75,7 @@ class DevicesPage(BasePage):
             for d in bluetooth_devices:
                 name = d.Name.strip()
                 if name not in shown:
-                    bt_layout.addWidget(QLabel(f"• {name}"))
+                    bt_layout.addWidget(QLabel(f"{name}"))
                     shown.add(name)
 
             if not shown:

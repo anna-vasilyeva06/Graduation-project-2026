@@ -6,25 +6,20 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QGroupBox
 
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader, section_title
+from ui.widgets import section_title
+from ui.widgets.text_utils import wrap_label, elide_middle
 
 
 class MemoryPage(BasePage):
     def __init__(self):
         super().__init__()
-        root = QVBoxLayout(self)
-        root.setAlignment(Qt.AlignTop)
-        root.setSpacing(10)
-        root.setContentsMargins(16, 16, 16, 16)
+        root = self.build_root(
+            "Память",
+            "ОЗУ, диски и крупные папки и файлы.",
+            spacing=10,
+        )
 
         from core.memory import get_memory, get_largest_paths
-
-        root.addWidget(
-            PageHeader(
-                "Память",
-                "ОЗУ, диски и крупные папки и файлы.",
-            )
-        )
 
         mem = get_memory()
         lbl_ram = QLabel("<b>Оперативная память</b>")
@@ -37,7 +32,7 @@ class MemoryPage(BasePage):
         bar.setValue(int(mem["Usage %"]))
         bar.setTextVisible(False)
         root.addWidget(bar)
-        root.addWidget(QLabel(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB'))
+        root.addWidget(wrap_label(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB'))
 
         root.addSpacing(14)
         lbl_disk = QLabel("<b>Локальные диски</b>")
@@ -80,7 +75,7 @@ class MemoryPage(BasePage):
                 root.addWidget(bar)
 
         except Exception as e:
-            root.addWidget(QLabel("Ошибка получения дисков: " + str(e)))
+            root.addWidget(wrap_label("Ошибка получения дисков: " + str(e)))
 
         root.addSpacing(16)
         lbl_heavy = QLabel("<b>Крупные объекты (по дискам)</b>")
@@ -93,7 +88,7 @@ class MemoryPage(BasePage):
             drives = heavy.get("drives") or []
 
             if not drives:
-                root.addWidget(QLabel("Нет данных по крупным объектам"))
+                root.addWidget(wrap_label("Нет данных по крупным объектам"))
             for drive in drives:
                 base = drive.get("root", "")
                 dirs = drive.get("dirs", []) or []
@@ -107,7 +102,7 @@ class MemoryPage(BasePage):
                         rel = path
                     return rel
 
-                title_drive = QLabel(f"Диск/путь: {base}")
+                title_drive = wrap_label(f"Диск/путь: {base}", tooltip=str(base))
                 title_drive.setStyleSheet("font-weight:bold; margin-top:6px;")
                 title_drive.setToolTip("Корневой путь, с которого выполнен анализ крупных папок и файлов")
                 root.addWidget(title_drive)
@@ -123,11 +118,11 @@ class MemoryPage(BasePage):
                     for d in dirs:
                         p = str(d.get("path", ""))
                         sz = d.get("size_gb", "-")
-                        lay_dirs.addWidget(
-                            QLabel(f"• {pretty_rel(p)} - {sz} GB")
-                        )
+                        rel = pretty_rel(p)
+                        txt = f"{elide_middle(rel, 90)} - {sz} GB"
+                        lay_dirs.addWidget(wrap_label(txt, tooltip=rel))
                 else:
-                    lay_dirs.addWidget(QLabel("Нет данных по папкам"))
+                    lay_dirs.addWidget(wrap_label("Нет данных по папкам"))
 
                 root.addWidget(box_dirs)
 
@@ -142,17 +137,20 @@ class MemoryPage(BasePage):
                     for f in files:
                         p = str(f.get("path", ""))
                         sz = f.get("size_gb", "-")
-                        lay_files.addWidget(
-                            QLabel(f"• {pretty_rel(p)} - {sz} GB")
-                        )
+                        rel = pretty_rel(p)
+                        txt = f"{elide_middle(rel, 90)} - {sz} GB"
+                        lay_files.addWidget(wrap_label(txt, tooltip=rel))
                 else:
-                    lay_files.addWidget(QLabel("Нет данных по файлам"))
+                    lay_files.addWidget(wrap_label("Нет данных по файлам"))
 
                 root.addWidget(box_files)
 
-                note = QLabel(f"Проанализировано файлов: {scanned} (путь: {base})")
+                note = wrap_label(
+                    f"Проанализировано файлов: {scanned} (путь: {elide_middle(base, 90)})",
+                    tooltip=str(base),
+                )
                 note.setStyleSheet("color:#666; font-size:10px")
                 root.addWidget(note)
 
         except Exception as e:
-            root.addWidget(QLabel("Ошибка анализа папок и файлов: " + str(e)))
+            root.addWidget(wrap_label("Ошибка анализа папок и файлов: " + str(e)))

@@ -1,10 +1,9 @@
 import re
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QVBoxLayout, QTextBrowser, QFrame
+from PySide6.QtWidgets import QTextBrowser, QFrame, QVBoxLayout
 
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader
 
 
 HELP_HTML = """
@@ -82,10 +81,10 @@ HELP_HTML = """
 <p><b>3.1. Установка и запуск (сборка .exe)</b></p>
 <p>Поставка программы предполагает использование <b>готового исполняемого модуля</b> и сопутствующих файлов библиотек.</p>
 <ol>
-<li><b>Получите дистрибутив</b> - папку или установочный пакет, содержащий файл <b>ITAnalytics.exe</b> и необходимые зависимости в той же структуре каталогов.</li>
+<li><b>Получите дистрибутив</b> - папку или установочный пакет, содержащий файл <b>ITMetric.exe</b> и необходимые зависимости в той же структуре каталогов.</li>
 <li>При <b>установщике</b> (msi/innosetup и т.п.): запустите установку, следуйте шагам мастера, при необходимости выберите каталог установки и создание ярлыка в меню «Пуск» или на рабочем столе.</li>
 <li>При <b>портативной папке</b>: скопируйте всю папку целиком на локальный диск (не отделяйте .exe от вложенных библиотек и ресурсов).</li>
-<li><b>Запуск:</b> двойной щелчок по <b>ITAnalytics.exe</b> или выбор ярлыка в меню Пуск / на рабочем столе.</li>
+<li><b>Запуск:</b> двойной щелчок по <b>ITMetric.exe</b> или выбор ярлыка в меню Пуск / на рабочем столе.</li>
 <li>При первом запуске <b>антивирус или Защитник Windows</b> может запросить подтверждение - разрешите запуск, если дистрибутив получен из доверенного источника.</li>
 <li>Если приложение не запускается, убедитесь, что не заблокирован доступ к папке установки, и что файл запускается из <b>полной копии</b> дистрибутива, а не один перенесённый .exe без остальных файлов.</li>
 </ol>
@@ -187,7 +186,6 @@ HELP_HTML = """
 <tr><td>Обратная связь не открывается</td><td>Нет браузера по умолчанию; блокировка</td><td>Назначить браузер по умолчанию; проверить антивирус и политики</td></tr>
 </table>
 
-<p><i>Для оформления в составе эксплуатационной документации по ГОСТ 34 к настоящему тексту добавляют титульный лист, лист регистрации изменений и нумерацию страниц при печати.</i></p>
 """
 
 
@@ -195,15 +193,11 @@ class HelpPage(BasePage):
     def __init__(self):
         super().__init__()
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 16)
-        main_layout.setSpacing(12)
-
-        main_layout.addWidget(
-            PageHeader(
-                "Руководство",
-                "Руководство пользователя: содержание, установка и запуск .exe, операции, типовые ошибки.",
-            )
+        main_layout = self.build_root(
+            "Руководство",
+            "Руководство пользователя: содержание, установка и запуск .exe, операции, типовые ошибки.",
+            spacing=12,
+            align_top=False,
         )
 
         card = QFrame()
@@ -217,6 +211,10 @@ class HelpPage(BasePage):
 
         self.browser.document().setDefaultStyleSheet(
             "body { word-wrap: break-word; } "
+            "a { color: inherit; text-decoration: none; } "
+            "ul { list-style-type: none; padding-left: 0; margin-left: 0; } "
+            "ol { padding-left: 18px; margin-left: 0; } "
+            "li { margin-left: 0; } "
             "span.search-highlight { background-color: #ffeb3b; }"
         )
         self.browser.setHtml(HELP_HTML)
@@ -227,6 +225,9 @@ class HelpPage(BasePage):
         main_layout.addWidget(card)
 
         self._highlight_timer = None
+        self._last_query: str = ""
+        self._match_spans: list[tuple[int, int]] = []
+        self._match_index: int = -1
 
     def _restore_help(self) -> None:
         self.browser.setHtml(HELP_HTML)
@@ -235,49 +236,77 @@ class HelpPage(BasePage):
             self._highlight_timer = None
 
     def jump_to_text(self, query: str) -> None:
+        """Перейти к первому совпадению (и пересобрать список совпадений)."""
+        self._prepare_matches(query)
+        self._goto_match(0)
 
-        if not query or not query.strip():
+    def next_match(self, query: str) -> None:
+        """Перейти к следующему совпадению (по кругу)."""
+        self._prepare_matches(query)
+        if not self._match_spans:
+            return
+        self._goto_match((self._match_index + 1) % len(self._match_spans))
+
+    def prev_match(self, query: str) -> None:
+        """Перейти к предыдущему совпадению (по кругу)."""
+        self._prepare_matches(query)
+        if not self._match_spans:
+            return
+        self._goto_match((self._match_index - 1) % len(self._match_spans))
+
+    def _prepare_matches(self, query: str) -> None:
+        q = (query or "").strip()
+        if not q:
+            self._last_query = ""
+            self._match_spans = []
+            self._match_index = -1
             return
 
-        q = query.strip()
+        # Если запрос тот же — не пересчитываем
+        if q == self._last_query and self._match_spans:
+            return
 
-        if self._highlight_timer is not None:
-            self._highlight_timer.stop()
-            self._highlight_timer = None
-
+        self._last_query = q
+        self._match_index = -1
 
         pattern = re.escape(q)
+        self._match_spans = [m.span() for m in re.finditer(pattern, HELP_HTML, re.IGNORECASE)]
 
-        match = re.search(pattern, HELP_HTML, re.IGNORECASE)
-        if not match:
+    def _goto_match(self, idx: int) -> None:
+        if not self._match_spans:
             cursor = self.browser.textCursor()
             cursor.movePosition(QTextCursor.Start)
             self.browser.setTextCursor(cursor)
             self.browser.ensureCursorVisible()
             return
 
+        idx = max(0, min(int(idx), len(self._match_spans) - 1))
+        self._match_index = idx
 
-        start, end = match.span()
+        if self._highlight_timer is not None:
+            self._highlight_timer.stop()
+            self._highlight_timer = None
+
+        start, end = self._match_spans[idx]
         before = HELP_HTML[:start]
         found_text = HELP_HTML[start:end]
         after = HELP_HTML[end:]
 
+        # Уникальный якорь для каждого перехода (чтобы setSource всегда срабатывал)
+        anchor = f"search-hit-{idx}"
         highlighted_html = (
             before
-            + '<a name="search-hit"></a><span class="search-highlight" style="background-color:#ffeb3b;">'
+            + f'<a name="{anchor}"></a><span class="search-highlight" style="background-color:#ffeb3b;">'
             + found_text
             + "</span>"
             + after
         )
 
         self.browser.setHtml(highlighted_html)
+        self.browser.setSource(QUrl("#" + anchor))
 
-
-        self.browser.setSource(QUrl("#search-hit"))
-
-        if self._highlight_timer is not None:
-            self._highlight_timer.stop()
+        # Сохраняем подсветку чуть дольше, но не навсегда
         self._highlight_timer = QTimer(self)
         self._highlight_timer.setSingleShot(True)
         self._highlight_timer.timeout.connect(self._restore_help)
-        self._highlight_timer.start(3000)
+        self._highlight_timer.start(4000)

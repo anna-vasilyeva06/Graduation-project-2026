@@ -14,39 +14,34 @@ import psutil
 
 from core.processes import get_top_processes
 from ui.pages.base import BasePage
-from ui.widgets import PageHeader, section_title
+from ui.widgets import section_title
 from ui.theme.charts import apply_perf_chart_theme, update_perf_chart_x_range
-
+from ui.widgets.list_utils import fit_list_widget_height
 
 class CpuPage(BasePage):
     def __init__(self):
         super().__init__()
-        root = QVBoxLayout(self)
-        root.setAlignment(Qt.AlignTop)
-        root.setSpacing(10)
-        root.setContentsMargins(16, 16, 16, 16)
+        root = self.build_root(
+            "CPU",
+            "Модель, ядра, загрузка в реальном времени и топ процессов.",
+            spacing=10,
+        )
 
         from core.cpu import get_cpu
 
         cpu = get_cpu()
-        root.addWidget(
-            PageHeader(
-                "CPU",
-                "Модель, ядра, загрузка в реальном времени и топ процессов.",
-            )
-        )
 
         lbl_cpu = QLabel("<b>Процессор</b>")
         lbl_cpu.setToolTip(
             "Центральный процессор: модель, ядра, потоки и текущая загрузка в реальном времени"
         )
         root.addWidget(lbl_cpu)
-        root.addWidget(QLabel("Модель: " + str(cpu.get("Model", "—"))))
-        lbl_cores = QLabel("Ядер: " + str(cpu.get("Cores", "—")))
+        root.addWidget(QLabel("Модель: " + str(cpu.get("Model", "-"))))
+        lbl_cores = QLabel("Ядер: " + str(cpu.get("Cores", "-")))
         lbl_cores.setToolTip("Физические ядра процессора")
         root.addWidget(lbl_cores)
-        lbl_threads = QLabel("Потоков: " + str(cpu.get("Threads", "—")))
-        lbl_threads.setToolTip("Логические процессоры. Обычно ≥ ядер (Hyper-Threading)")
+        lbl_threads = QLabel("Потоков: " + str(cpu.get("Threads", "-")))
+        lbl_threads.setToolTip("Логические процессоры")
         root.addWidget(lbl_threads)
 
         root.addSpacing(6)
@@ -61,10 +56,8 @@ class CpuPage(BasePage):
         self.area_series = QAreaSeries()
         self.area_series.setUpperSeries(self.line_series)
         self.area_series.setLowerSeries(self.base_series)
-
         self.chart = QChart()
         self.chart.legend().hide()
-        # Только QAreaSeries: дублирующая QLineSeries на том же графике ломала масштаб оси Y (обрезка сверху).
         self.chart.addSeries(self.area_series)
         self.chart.createDefaultAxes()
         for ax in self.chart.axes(Qt.Orientation.Vertical):
@@ -124,7 +117,6 @@ class CpuPage(BasePage):
         self.timer.start(CHART_REFRESH_BACKGROUND_MS)
 
     def _seed_chart_baseline(self) -> None:
-        """QAreaSeries без ≥2 точек часто не рисуется; базовая линия по оси X."""
         for bx in (0, 1):
             self.line_series.append(bx, 0.0)
             self.base_series.append(bx, 0.0)
@@ -132,9 +124,7 @@ class CpuPage(BasePage):
         self.chart.axisX().setRange(0, 1)
 
     def set_monitoring_active(self, active: bool) -> None:
-        """Частота опроса: выше на вкладке CPU, ниже в фоне (таймер не останавливаем)."""
         from config import CHART_REFRESH_BACKGROUND_MS, REFRESH_INTERVAL_MS
-
         self.timer.setInterval(
             REFRESH_INTERVAL_MS if active else CHART_REFRESH_BACKGROUND_MS
         )
@@ -170,18 +160,4 @@ class CpuPage(BasePage):
                 self._proc_list.addItem(
                     f"{name} (PID {pid}) - RAM: {mem:.1f}%, CPU: {cpu:.1f}%"
                 )
-        self._fit_proc_list_height()
-
-    def _fit_proc_list_height(self) -> None:
-        w = self._proc_list
-        n = w.count()
-        if n == 0:
-            w.setFixedHeight(0)
-            return
-        row_fallback = max(w.fontMetrics().height() + 6, 24)
-        h = 0
-        for i in range(n):
-            rh = w.sizeHintForRow(i)
-            h += row_fallback if rh <= 0 else rh
-        h += 2 * w.frameWidth() + 4
-        w.setFixedHeight(h)
+        fit_list_widget_height(self._proc_list)

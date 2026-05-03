@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from core.system_health import get_system_health
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
-from ui.widgets import PageHeader, section_title
+from ui.widgets import section_title
 
 
 def _status_indicator(color: str, size: int = 10) -> QWidget:
@@ -115,16 +115,10 @@ class HealthPage(BasePage):
     def __init__(self):
         super().__init__()
 
-        self._root = QVBoxLayout(self)
-        self._root.setAlignment(Qt.AlignTop)
-        self._root.setSpacing(14)
-        self._root.setContentsMargins(16, 16, 16, 16)
-
-        self._root.addWidget(
-            PageHeader(
-                "Здоровье системы",
-                "Правила по компонентам и прогноз модели (ординарная логистическая регрессия, 6 признаков).",
-            )
+        self._root = self.build_root(
+            "Здоровье системы",
+            "Правила по компонентам и прогноз модели (ординарная логистическая регрессия, 6 признаков).",
+            spacing=14,
         )
 
         self._box_health = None
@@ -196,7 +190,10 @@ class HealthPage(BasePage):
                 advice_label.setStyleSheet("font-weight:bold;")
                 lay.addWidget(advice_label)
                 for tip in advice:
-                    lay.addWidget(QLabel("• " + tip))
+                    l_tip = QLabel("• " + tip)
+                    l_tip.setWordWrap(True)
+                    l_tip.setMinimumWidth(0)
+                    lay.addWidget(l_tip)
                 lay.addWidget(QLabel(""))
 
             # Компоненты — простым списком
@@ -205,8 +202,8 @@ class HealthPage(BasePage):
             lay.addWidget(comp_label)
 
             for d in details:
-                comp = d.get("component", "—")
-                val = d.get("value", "—")
+                comp = d.get("component", "-")
+                val = d.get("value", "-")
                 st = d.get("status", "ok")
                 reason = d.get("reason")
                 if st == "ok":
@@ -220,6 +217,8 @@ class HealthPage(BasePage):
                 ind_color = COLORS["error"] if st == "error" else (COLORS["warning"] if st == "warning" else COLORS["success"])
                 row.addWidget(_status_indicator(ind_color))
                 lbl = QLabel(line)
+                lbl.setWordWrap(True)
+                lbl.setMinimumWidth(0)
                 if st == "error":
                     lbl.setStyleSheet(f"color:{COLORS['error']};")
                 elif st == "warning":

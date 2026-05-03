@@ -1,49 +1,31 @@
-"""
-Топ процессов по загрузке CPU и RAM.
-"""
 import time
-from typing import Any, Dict, List
-
+from typing import Any
 import psutil
-
-
-def get_top_processes(sort_by: str = "cpu", n: int = 10) -> List[Dict[str, Any]]:
-    """
-    Возвращает топ-n процессов по CPU или RAM.
-    sort_by: "cpu" | "memory"
-    """
-    result: List[Dict[str, Any]] = []
-
+def get_top_processes(sort_by: str = "cpu", n: int = 10) -> list[dict[str, Any]]:
     try:
         procs = list(psutil.process_iter())
     except Exception:
         return []
-
-    if sort_by == "cpu":
+    key = "cpu" if sort_by == "cpu" else "memory"
+    if key == "cpu":
         for p in procs:
             try:
                 p.cpu_percent()
             except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
+                continue
         time.sleep(0.2)
-        for p in procs:
-            try:
-                cpu = p.cpu_percent()
-                mem = p.memory_percent()
-                name = p.name() or "—"
-                result.append({"pid": p.pid, "name": name, "cpu": cpu, "memory": mem})
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        result.sort(key=lambda x: x["cpu"], reverse=True)
-    else:
-        for p in procs:
-            try:
-                cpu = p.cpu_percent()
-                mem = p.memory_percent()
-                name = p.name() or "—"
-                result.append({"pid": p.pid, "name": name, "cpu": cpu, "memory": mem})
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        result.sort(key=lambda x: x["memory"], reverse=True)
-
-    return result[:n]
+    out: list[dict[str, Any]] = []
+    for p in procs:
+        try:
+            out.append(
+                {
+                    "pid": p.pid,
+                    "name": p.name() or "-",
+                    "cpu": p.cpu_percent(),
+                    "memory": p.memory_percent(),
+                }
+            )
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    out.sort(key=lambda x: x.get(key) or 0.0, reverse=True)
+    return out[:n]

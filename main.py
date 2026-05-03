@@ -1,8 +1,10 @@
 import sys
+import os
+import ctypes
 
 from PySide6.QtCore import Qt, QTimer, QEvent, QObject
 from PySide6.QtWidgets import QApplication, QWidget, QLineEdit, QSpinBox, QLabel, QTextBrowser
-from PySide6.QtGui import QFocusEvent
+from PySide6.QtGui import QFocusEvent, QIcon
 from ui.main_window import MainWindow
 from ui.theme import apply_theme
 
@@ -76,7 +78,20 @@ _orig_set_tooltip = QWidget.setToolTip
 QWidget.setToolTip = lambda self, text: _orig_set_tooltip(self, _wrap_tooltip(text) if text else "")
 
 app = QApplication(sys.argv)
+app.setApplicationName("ITMetric")
+
+
+try:
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ITMetric.ITMetric")
+except Exception:
+    pass
 apply_theme(app)
+try:
+    ico_path = os.path.join(os.path.dirname(__file__), "ui", "icons", "icon.ico")
+    if os.path.exists(ico_path):
+        app.setWindowIcon(QIcon(ico_path))
+except Exception:
+    pass
 app.installEventFilter(NoSelectionFilter(app))
 win = MainWindow()
 win.show()
