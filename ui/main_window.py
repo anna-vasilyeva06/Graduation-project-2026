@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.sidebar = QListWidget()
         self.sidebar.setObjectName("sidebarNav")
         self.sidebar.setItemDelegate(SidebarNavDelegate(self.sidebar))
-        # Размер иконок = nav_icons(); делегат рисует иконку+текст с зазором (обход бага QIcon+DPR)
+
         _nav_icon_px = 26
         self.sidebar.setFixedWidth(240)
         self.sidebar.setIconSize(QSize(_nav_icon_px, _nav_icon_px))
@@ -177,8 +177,6 @@ class MainWindow(QMainWindow):
             self.stack_widgets.append(scroll)
         body.addWidget(self.stack, 1)
 
-        self.stack.currentChanged.connect(self._sync_chart_page_monitors)
-
         self.sidebar.currentRowChanged.connect(self.switch_page)
         if self.sidebar.count() > 0:
             self.sidebar.setCurrentRow(0)
@@ -191,13 +189,14 @@ class MainWindow(QMainWindow):
         self._suggest.hide()
         self._selection_fix_done = False
 
-        # --- system notifications (tray) ---
+
         self._tray: Optional[QSystemTrayIcon] = None
         self._tray_menu: Optional[QMenu] = None
         self._tray_act_show: Optional[QAction] = None
         self._tray_act_quit: Optional[QAction] = None
         self._health_watch_timer: Optional[QTimer] = None
         self._last_health_status: str = "ok"
+        self._last_health_fingerprint: str = ""
         self._init_tray_and_health_watch()
 
     def _load_app_icon(self) -> QIcon:
@@ -211,7 +210,6 @@ class MainWindow(QMainWindow):
         return QIcon()
 
     def _init_tray_and_health_watch(self) -> None:
-        """В фоне следит за статусом и шлёт уведомления при warning/error."""
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
 
@@ -224,11 +222,11 @@ class MainWindow(QMainWindow):
         tray = QSystemTrayIcon(qicon, self)
         tray.setToolTip("ITMetric")
 
-        # Важно хранить QMenu/QAction в self, иначе на Windows меню может "исчезать".
+
         menu = QMenu()
         menu.setObjectName("trayMenu")
-        # Тема приложения может задавать глобальный stylesheet для QMenu (тёмный фон + тёмный текст).
-        # Для трея принудительно задаём читаемые "системные" цвета через palette(...).
+
+
         menu.setStyleSheet(
             """
             QMenu#trayMenu {
@@ -270,14 +268,14 @@ class MainWindow(QMainWindow):
 
         self._tray = tray
 
-        # Периодический опрос без участия пользователя (не зависит от активной вкладки)
+
         t = QTimer(self)
-        t.setInterval(60_000)  # 60s
+        t.setInterval(60_000)
         t.timeout.connect(self._poll_health_and_notify)
         t.start()
         self._health_watch_timer = t
 
-        # Стартовый снапшот (без уведомления)
+
         self._poll_health_and_notify(silent=True)
 
     def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
@@ -298,9 +296,8 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _health_message(health: dict) -> tuple[str, str]:
-        """Короткий заголовок + текст для toast/balloon."""
         status = (health or {}).get("status") or "ok"
-        heading = {"ok": "Всё в порядке", "warning": "Есть замечания", "error": "Требуется внимание"}.get(
+        heading = {"ok": "Всё в порядке", "warning": "Есть замечания", "error": "Критическое состояние"}.get(
             status, str(status)
         )
 
@@ -325,6 +322,17 @@ class MainWindow(QMainWindow):
             text = (health or {}).get("summary") or ""
         return heading, text
 
+    @staticmethod
+    def _health_fingerprint(health: dict) -> str:
+        details = (health or {}).get("details") or []
+        parts = []
+        for d in details:
+            comp = (d or {}).get("component") or ""
+            st = (d or {}).get("status") or ""
+            parts.append(f"{comp}|{st}")
+        parts.sort()
+        return ";".join(parts)
+
     def _poll_health_and_notify(self, silent: bool = False) -> None:
         if self._tray is None:
             return
@@ -337,10 +345,14 @@ class MainWindow(QMainWindow):
         prev = self._last_health_status or "ok"
         self._last_health_status = status
 
-        # Уведомляем только при ухудшении или входе в warning/error
-        worsened = self._severity_rank(status) > self._severity_rank(prev)
-        entered_problem = prev == "ok" and status in ("warning", "error")
-        if silent or not (worsened or entered_problem):
+        fp = self._health_fingerprint(health)
+        prev_fp = self._last_health_fingerprint or ""
+        self._last_health_fingerprint = fp
+
+
+        any_change = fp != prev_fp
+        has_problem = status in ("warning", "error")
+        if silent or not (any_change and has_problem):
             return
 
         title, msg = self._health_message(health)
@@ -349,18 +361,18 @@ class MainWindow(QMainWindow):
             if status == "error"
             else QSystemTrayIcon.MessageIcon.Warning
         )
-        # timeoutMs: 0 = по умолчанию ОС
+
         self._tray.showMessage(title, msg, icon, 0)
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Один раз: обход всего дерева виджетов дорогой, не повторять при каждом показе окна
+
         if not self._selection_fix_done:
             self._selection_fix_done = True
             self._disable_text_selection()
 
     def closeEvent(self, event):
-        # Крестик = сворачиваем в трей, приложение остаётся работать.
+
         if self._tray is not None and QSystemTrayIcon.isSystemTrayAvailable():
             event.ignore()
             self.hide()
@@ -372,18 +384,9 @@ class MainWindow(QMainWindow):
             w.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
             w.setAutoFillBackground(False)
 
-    def _sync_chart_page_monitors(self, stack_index: int) -> None:
-        """CPU/GPU: интервал опроса выше на активной вкладке, в фоне реже (графики всегда копятся)."""
-        for i, page in enumerate(self.pages):
-            fn = getattr(page, "set_monitoring_active", None)
-            if callable(fn):
-                fn(i == stack_index)
-
     def switch_page(self, i):
         if 0 <= i < len(self.stack_widgets):
             self.stack.setCurrentIndex(i)
-            # currentChanged не срабатывает, если индекс не изменился — синхронизируем таймеры всегда
-            self._sync_chart_page_monitors(i)
 
     def search_text(self, t):
         self._suggest.hide()

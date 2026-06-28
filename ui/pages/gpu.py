@@ -1,5 +1,4 @@
 import threading
-
 from PySide6.QtCharts import QAreaSeries, QChart, QChartView, QLineSeries
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import (
@@ -7,10 +6,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QFrame,
 )
-
 from ui.pages.base import BasePage
-from ui.theme.charts import apply_perf_chart_theme, update_perf_chart_x_range
-
+from ui.theme.charts import (
+    HISTORY_LENGTH,
+    REFRESH_INTERVAL_MS,
+    apply_perf_chart_theme,
+    update_perf_chart_x_range,
+)
 
 class GpuPage(BasePage):
     _gpu_frac_ready = Signal(object)
@@ -22,14 +24,12 @@ class GpuPage(BasePage):
             "Видеокарта и график загрузки GPU",
             spacing=10,
         )
-
         lbl_gpu = QLabel("<b>Видеокарта</b>")
         lbl_gpu.setToolTip(
             "Графический процессор: модель и текущая загрузка. Важно для игр и тяжёлых приложений"
         )
         root.addWidget(lbl_gpu)
-
-        self._gpu_model_lbl = QLabel("Модель: …")
+        self._gpu_model_lbl = QLabel("Модель:")
         root.addWidget(self._gpu_model_lbl)
         QTimer.singleShot(0, self._load_gpu_model_name)
         root.addSpacing(6)
@@ -38,13 +38,11 @@ class GpuPage(BasePage):
             "Процент использования видеокарты."
         )
         root.addWidget(lbl_load)
-
         self.line_series = QLineSeries()
         self.base_series = QLineSeries()
         self.area_series = QAreaSeries()
         self.area_series.setUpperSeries(self.line_series)
         self.area_series.setLowerSeries(self.base_series)
-
         self.chart = QChart()
         self.chart.legend().hide()
         self.chart.addSeries(self.area_series)
@@ -53,33 +51,25 @@ class GpuPage(BasePage):
             ax.setRange(0, 100)
         self.chart.axisX().setTitleText("секунды")
         self.chart.axisY().setTitleText("%")
-
         view = QChartView(self.chart)
         view.setFixedHeight(420)
         apply_perf_chart_theme(self.chart, self.line_series, self.area_series, view)
-
         self._chart_view = view
         self._seed_chart_baseline()
-
         chart_card = QFrame()
         chart_card.setObjectName("chartCard")
         wrap = QVBoxLayout(chart_card)
         wrap.setContentsMargins(12, 12, 12, 12)
         wrap.addWidget(view)
         root.addWidget(chart_card)
-
         root.addStretch(1)
-
         self._last_gpu_pct = 0.0
         self._gpu_sample_lock = threading.Lock()
         self._gpu_sample_inflight = False
         self._gpu_frac_ready.connect(self._on_gpu_frac_ready)
-
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
-        from config import CHART_REFRESH_BACKGROUND_MS
-
-        self.timer.start(CHART_REFRESH_BACKGROUND_MS)
+        self.timer.start(REFRESH_INTERVAL_MS)
 
     def _seed_chart_baseline(self) -> None:
         for bx in (0, 1):
@@ -98,20 +88,9 @@ class GpuPage(BasePage):
         except Exception:
             self._gpu_model_lbl.setText("Модель: -")
 
-    def set_monitoring_active(self, active: bool) -> None:
-        from config import CHART_REFRESH_BACKGROUND_MS, REFRESH_INTERVAL_MS
-
-        self.timer.setInterval(
-            REFRESH_INTERVAL_MS if active else CHART_REFRESH_BACKGROUND_MS
-        )
-        if active:
-            QTimer.singleShot(0, self.tick)
-
     def _append_chart_point(self, y: float) -> None:
         self.line_series.append(self.x, y)
         self.base_series.append(self.x, 0.0)
-        from config import HISTORY_LENGTH
-
         if self.line_series.count() > HISTORY_LENGTH:
             self.line_series.remove(0)
             self.base_series.remove(0)
@@ -144,5 +123,4 @@ class GpuPage(BasePage):
             except Exception:
                 pass
             self._gpu_frac_ready.emit(frac)
-
         threading.Thread(target=work, daemon=True).start()

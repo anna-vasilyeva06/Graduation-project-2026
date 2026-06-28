@@ -1,7 +1,3 @@
-"""
-Монохромные SVG-иконки для навигации (единый цвет и толщина линий).
-Рендер в QIcon через QSvgRenderer (PySide6.QtSvg).
-"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,19 +7,19 @@ from PySide6.QtGui import QIcon, QPainter, QPixmap
 
 try:
     from PySide6.QtSvg import QSvgRenderer
-except ImportError:  # pragma: no cover
-    QSvgRenderer = None  # type: ignore[misc, assignment]
+except ImportError:
+    QSvgRenderer = None
 
 _SVG_DIR = Path(__file__).resolve().parent / "svg"
 
-# Во всех svg/*.svg обводка этого цвета (замена при выделении и т.п.)
+
 SVG_STROKE_DEFAULT = "#1e6dad"
 
-# Кэш QIcon: (файл, размер, цвет обводки) — делегат не перерисовывает SVG каждый кадр
+
 _ICON_CACHE: dict[tuple[str, int, str], QIcon] = {}
 _CACHE_MAX = 48
 
-# Имя файла для каждого пункта меню (порядок как в main_window)
+
 NAV_ICON_FILES: tuple[tuple[str, str], ...] = (
     ("Главная", "home.svg"),
     ("Здоровье системы", "activity.svg"),
@@ -49,14 +45,6 @@ def svg_to_icon(
     inset_ratio: float = 0.08,
     stroke_color: str | None = None,
 ) -> QIcon | None:
-    """
-    Рендер SVG в квадрат size×size (логических пикселей).
-
-    stroke_color — подмена цвета обводки (в файлах используется SVG_STROKE_DEFAULT).
-
-    Важно: не выставлять devicePixelRatio на QPixmap при помещении в QIcon для QListWidget —
-    иначе Qt часто масштабирует неверно и виден только «уголок» иконки (обрывки линий).
-    """
     stroke_key = stroke_color or SVG_STROKE_DEFAULT
     cache_key = (filename, size, stroke_key)
     if cache_key in _ICON_CACHE:
@@ -93,7 +81,6 @@ def svg_to_icon(
 
 
 def sidebar_icon(filename: str, size: int, selected: bool) -> QIcon | None:
-    """Иконка навигации: обычная или в цвете акцента при выделении."""
     from ui.theme.colors import COLORS
 
     if selected:
@@ -102,7 +89,6 @@ def sidebar_icon(filename: str, size: int, selected: bool) -> QIcon | None:
 
 
 def nav_icons(size: int = 24) -> list[tuple[str, QIcon | None]]:
-    """Список (подпись, QIcon) для боковой панели."""
     out: list[tuple[str, QIcon | None]] = []
     for label, fname in NAV_ICON_FILES:
         out.append((label, svg_to_icon(fname, size)))

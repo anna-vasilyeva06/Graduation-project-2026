@@ -1,17 +1,66 @@
 {
-  "model_type": "ordinal_logit",
-  "w": [
-    3.661825818262319,
-    2.326614387101653,
-    1.9704530690978543,
-    -4.9131177036424765,
-    -0.3878981243259951,
-    0.732040773143988
-  ],
-  "theta": [
-    -1.900952079970486,
-    0.26440100683663603
-  ],
-  "train_loss": 0.8116087526485449,
-  "val_loss": 0.7439471523231762
+  "model_type": "statsmodels_ordered_logit",
+  "meta": {
+    "trainer": "statsmodels.OrderedModel",
+    "trained_at": "2026-05-27T22:14:16",
+    "formula": "label ~ 0 + cpu + ram + disk + battery_ok + network_ok + gpu + peak_load",
+    "label_order": [
+      "OK",
+      "Warn",
+      "Error"
+    ],
+    "features": [
+      "cpu",
+      "ram",
+      "disk",
+      "battery_ok",
+      "network_ok",
+      "gpu",
+      "peak_load"
+    ],
+    "n_samples": 906,
+    "oversample_warn": 3,
+    "oversample_error": 4,
+    "cutpoint_offsets": {
+      "OK/Warn": 0.5000000000000018,
+      "Warn/Error": -0.09999999999999876
+    },
+    "val_tune_score": 0.9063934426229509,
+    "val_recall": [
+      0.9333333333333333,
+      0.8360655737704918,
+      0.9672131147540983
+    ],
+    "statsmodels_params": {
+      "cpu": 1.078554683407729,
+      "ram": -0.3696182080818926,
+      "disk": -0.6411642890683046,
+      "battery_ok": -14.579632699158486,
+      "network_ok": -4.54726492448999,
+      "gpu": -0.4566650547336314,
+      "peak_load": 20.555606949901314,
+      "OK/Warn": -4.651049374575636,
+      "Warn/Error": 1.4899265217209572
+    },
+    "cut_names": [
+      "OK/Warn",
+      "Warn/Error"
+    ],
+    "theta": [
+      -4.651049374575636,
+      -0.2142798737368823
+    ],
+    "coef": {
+      "cpu": 1.078554683407729,
+      "ram": -0.3696182080818926,
+      "disk": -0.6411642890683046,
+      "battery_ok": -14.579632699158486,
+      "network_ok": -4.54726492448999,
+      "gpu": -0.4566650547336314,
+      "peak_load": 20.555606949901314
+    },
+    "train_correct": 784,
+    "train_wrong": 122,
+    "train_accuracy": 0.8653421633554084
+  }
 }

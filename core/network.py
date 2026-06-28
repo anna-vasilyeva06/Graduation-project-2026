@@ -1,18 +1,29 @@
-import re
 import socket
 import subprocess
 from typing import Any
-
 import psutil
-
-_IFACE_ORDER = {"Wi-Fi": 0, "Ethernet": 1, "Сеть": 2, "Bluetooth": 3, "Loopback": 4}
-_AF_LINK = getattr(psutil, "AF_LINK", None)
-_AF_PACKET = getattr(socket, "AF_PACKET", None)
-
+_IFACE_ORDER = {"Wi-Fi": 0, "Ethernet": 1, "Другое": 2, "Bluetooth": 3, "Loopback": 4}
+_MAC_FAMILIES = {
+    fam
+    for fam in (
+        getattr(psutil, "AF_LINK", None),
+        getattr(socket, "AF_PACKET", None),
+    )
+    if fam is not None
+}
 
 def _interface_type(name: str) -> str:
     ln = name.lower()
-    if "wi-fi" in ln or "wireless" in ln or "wlan" in ln:
+    if (
+        "wi-fi" in ln
+        or "wifi" in ln
+        or "wi fi" in ln
+        or "wireless" in ln
+        or "wlan" in ln
+        or "802.11" in ln
+        or "беспровод" in ln
+        or "вайфай" in ln
+    ):
         return "Wi-Fi"
     if "ethernet" in ln or "eth" in ln:
         return "Ethernet"
@@ -20,25 +31,20 @@ def _interface_type(name: str) -> str:
         return "Bluetooth"
     if "loopback" in ln or ln == "lo":
         return "Loopback"
-    return "Сеть"
-
+    return "Другое"
 
 def _collect_addresses(addr_list: list) -> tuple[list[str], list[str], str]:
     ipv4: list[str] = []
     ipv6: list[str] = []
     mac = ""
     for a in addr_list:
-        fam = a.family
-        if fam == socket.AF_INET:
+        if a.family == socket.AF_INET:
             ipv4.append(a.address)
-        elif fam == socket.AF_INET6 and not (a.address or "").startswith("::1"):
+        elif a.family == socket.AF_INET6 and not (a.address or "").startswith("::1"):
             ipv6.append(a.address)
-        elif _AF_PACKET is not None and fam == _AF_PACKET:
-            mac = a.address or mac
-        elif _AF_LINK is not None and fam == _AF_LINK:
+        elif a.family in _MAC_FAMILIES:
             mac = a.address or mac
     return ipv4, ipv6, mac
-
 
 def get_network_info() -> list[dict[str, Any]]:
     stats = psutil.net_if_stats()
@@ -50,21 +56,25 @@ def get_network_info() -> list[dict[str, Any]]:
             continue
         ipv4, ipv6, mac = _collect_addresses(addr_list)
         itype = _interface_type(name)
-        if itype == "Loopback" and not ipv4:
-            continue
-        speed_mbps = getattr(stat, "speed", None) or 0
+        has_ipv4 = bool(ipv4)
+        has_ipv6_global = any(not (ip or "").lower().startswith("fe80:") for ip in ipv6)
+        if itype == "Loopback":
+            if not has_ipv4:
+                continue
+        else:
+            if not has_ipv4 and not has_ipv6_global:
+                continue
+        speed_mbps = getattr(stat, "speed", 0) or 0
         out.append({
             "name": name,
             "type": itype,
             "ipv4": ipv4,
             "ipv6": ipv6,
             "mac": mac,
-            "speed": f"{speed_mbps} Мбит/с" if speed_mbps > 0 else "—",
-            "mtu": getattr(stat, "mtu", None) or "—",
+            "speed": f"{speed_mbps} Мбит/с" if speed_mbps > 0 else "-",
         })
     out.sort(key=lambda x: (_IFACE_ORDER.get(x["type"], 5), x["name"]))
     return out
-
 
 def _host_ping_hint(hostname: str) -> str:
     try:
@@ -73,7 +83,6 @@ def _host_ping_hint(hostname: str) -> str:
         return f" ({h} → {ip})" if ip != h else ""
     except OSError:
         return ""
-
 
 def ping_host(hostname: str, count: int = 1, timeout_sec: int = 5) -> tuple[bool, str]:
     if not hostname or not hostname.strip():
@@ -90,12 +99,8 @@ def ping_host(hostname: str, count: int = 1, timeout_sec: int = 5) -> tuple[bool
             encoding="utf-8",
             errors="replace",
         )
-        txt = (r.stdout or "") + (r.stderr or "")
         if r.returncode != 0:
             return False, f"Недоступен (код {r.returncode})"
-        m = re.search(r"(?:time|время)\s*=\s*(\d+(?:\.\d+)?)\s*(?:ms|мс)?", txt, re.I)
-        if m:
-            return True, f"Доступен{hint}, время отклика: {m.group(1)} мс"
         return True, f"Доступен{hint}"
     except subprocess.TimeoutExpired:
         return False, "Таймаут"
@@ -103,7 +108,6 @@ def ping_host(hostname: str, count: int = 1, timeout_sec: int = 5) -> tuple[bool
         return False, "Команда ping не найдена"
     except OSError as e:
         return False, str(e)
-
 
 def check_port(hostname: str, port: int, timeout: float = 5.0) -> tuple[bool, str]:
     if not hostname or not hostname.strip():
@@ -121,3 +125,19 @@ def check_port(hostname: str, port: int, timeout: float = 5.0) -> tuple[bool, st
         return False, f"Порт {port} закрыт (соединение отклонено)"
     except OSError as e:
         return False, f"Порт {port}: {e}"
+
+def has_internet(timeout: float = 1.5) -> bool:
+    try:
+        stats = psutil.net_if_stats()
+        if not any(s.isup for s in stats.values()):
+            return False
+    except Exception:
+        pass
+    targets = [("1.1.1.1", 443), ("8.8.8.8", 443), ("77.88.8.8", 443), ("77.88.8.8", 53), ("1.1.1.1", 53), ("8.8.8.8", 53)]
+    for host, port in targets:
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except OSError:
+            continue
+    return False

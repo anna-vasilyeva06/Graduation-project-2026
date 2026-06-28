@@ -1,17 +1,9 @@
-"""
-Оценка «здоровья» системы по пороговым правилам: CPU, ОЗУ, диски, батарея, сеть, GPU.
-
-Дополнительно get_system_health() вызывает core.ml_health.predict_only() — ординарная
-логистическая регрессия по 6 признакам (см. core/ml_health.py и ml_health_model.json);
-итог на экране совмещается с правилами так, чтобы критические случаи по правилам не занижались.
-"""
 import os
 import shutil
 from typing import Any, Dict, List, Optional
 
 import psutil
 
-# Пороги (в процентах или флагах)
 CPU_OK = 80
 CPU_BAD = 95
 RAM_OK = 80
@@ -23,9 +15,7 @@ BATTERY_CRITICAL = 10
 GPU_OK = 80
 GPU_BAD = 95
 
-
 def _safe_disk_percent(mount: str) -> Optional[float]:
-    """Безопасно возвращает процент заполнения диска."""
     drive, _ = os.path.splitdrive(mount)
     if not drive:
         return None
@@ -40,23 +30,9 @@ def _safe_disk_percent(mount: str) -> Optional[float]:
     except (OSError, SystemError, TypeError, ValueError):
         return None
 
-
 def get_system_health() -> Dict[str, Any]:
-    """
-    Собирает метрики по подсистемам (CPU, память, диски, батарея, сеть, GPU),
-    оценивает каждую по порогам и формирует сводку. Модель ML (6 признаков, ordinal logit)
-    подмешивается в поле "ml" через predict_only().
-
-    Возвращает:
-    - status: "ok" | "warning" | "error"
-    - message: краткий вердикт
-    - details: список {"component", "status", "value", "reason"}
-    - summary: рекомендация (что сделать)
-    """
     details: List[Dict[str, Any]] = []
-    worst = "ok"  # ok < warning < error
-
-    # --- CPU ---
+    worst = "ok"
     try:
         cpu_pct = psutil.cpu_percent(interval=0.1)
     except Exception:
@@ -67,7 +43,7 @@ def get_system_health() -> Dict[str, Any]:
                 "component": "CPU",
                 "status": "error",
                 "value": f"{cpu_pct:.0f}%",
-                "reason": "Очень высокая загрузка процессора — возможны подвисания.",
+                "reason": "Очень высокая загрузка процессора - возможны подвисания.",
             })
             worst = "error"
         elif cpu_pct >= CPU_OK:
@@ -87,11 +63,10 @@ def get_system_health() -> Dict[str, Any]:
                 "reason": None,
             })
     else:
-        details.append({"component": "CPU", "status": "warning", "value": "—", "reason": "Нет данных."})
+        details.append({"component": "CPU", "status": "warning", "value": "-", "reason": "Нет данных."})
         if worst == "ok":
             worst = "warning"
 
-    # --- Память (ОЗУ) ---
     try:
         mem = psutil.virtual_memory()
         ram_pct = mem.percent
@@ -103,7 +78,7 @@ def get_system_health() -> Dict[str, Any]:
                 "component": "Память (ОЗУ)",
                 "status": "error",
                 "value": f"{ram_pct:.0f}%",
-                "reason": "Критически мало свободной памяти — возможны сбои и тормоза.",
+                "reason": "Критически мало свободной памяти - возможны сбои и тормоза.",
             })
             worst = "error"
         elif ram_pct >= RAM_OK:
@@ -123,11 +98,10 @@ def get_system_health() -> Dict[str, Any]:
                 "reason": None,
             })
     else:
-        details.append({"component": "Память", "status": "warning", "value": "—", "reason": "Нет данных."})
+        details.append({"component": "Память", "status": "warning", "value": "-", "reason": "Нет данных."})
         if worst == "ok":
             worst = "warning"
 
-    # --- Диски ---
     disk_issues: List[str] = []
     _seen_disk_labels = set()
     for part in psutil.disk_partitions(all=False):
@@ -146,7 +120,7 @@ def get_system_health() -> Dict[str, Any]:
                 "component": f"Диск {label}",
                 "status": "error",
                 "value": f"{pct:.0f}%",
-                "reason": "Критически мало свободного места — возможны ошибки обновлений и установки.",
+                "reason": "Критически мало свободного места - возможны ошибки обновлений и установки.",
             })
             worst = "error"
         elif pct >= DISK_OK:
@@ -166,11 +140,8 @@ def get_system_health() -> Dict[str, Any]:
                 "reason": None,
             })
 
-    # Fallback: иногда disk_partitions() возвращает пусто (права/политики/сборка ОС).
-    # Тогда добавляем хотя бы системный диск, чтобы в UI всегда был пункт "Диск C:".
     if not _seen_disk_labels:
         try:
-            # SystemDrive обычно "C:"; psutil.disk_usage ожидает путь вида "C:\\"
             sys_drive = (os.environ.get("SystemDrive") or "C:").upper().rstrip(":\\") + ":"
             u = shutil.disk_usage(sys_drive + "\\")
             pct = (float(u.used) / float(u.total)) * 100.0 if u.total else 0.0
@@ -181,7 +152,7 @@ def get_system_health() -> Dict[str, Any]:
                     "component": f"Диск {label}",
                     "status": "error",
                     "value": f"{pct:.0f}%",
-                    "reason": "Критически мало свободного места — возможны ошибки обновлений и установки.",
+                    "reason": "Критически мало свободного места - возможны ошибки обновлений и установки.",
                 })
                 worst = "error"
             elif pct >= DISK_OK:
@@ -203,7 +174,6 @@ def get_system_health() -> Dict[str, Any]:
         except Exception:
             pass
 
-    # --- Батарея ---
     try:
         bat = psutil.sensors_battery()
     except Exception:
@@ -235,32 +205,42 @@ def get_system_health() -> Dict[str, Any]:
                 "value": f"{pct:.0f}%{plugged}",
                 "reason": None,
             })
-    # Если батареи нет — не добавляем в список (стационарный ПК)
 
-    # --- Сеть ---
+
+    online = None
     try:
-        stats = psutil.net_if_stats()
-        up_count = sum(1 for s in stats.values() if s.isup)
+        from .network import has_internet
+
+        online = bool(has_internet(timeout=1.5))
     except Exception:
-        up_count = 0
-    if up_count > 0:
+        online = None
+
+    if online is False:
+        details.append({
+            "component": "Сеть",
+            "status": "warning",
+            "value": "Нет",
+            "reason": "Нет подключения к Интернету.",
+        })
+        if worst == "ok":
+            worst = "warning"
+    elif online is True:
         details.append({
             "component": "Сеть",
             "status": "ok",
-            "value": f"Активных интерфейсов: {up_count}",
+            "value": "Есть",
             "reason": None,
         })
     else:
         details.append({
             "component": "Сеть",
             "status": "warning",
-            "value": "0",
-            "reason": "Нет активных подключений (возможно, вы offline).",
+            "value": "—",
+            "reason": "Не удалось проверить подключение к Интернету.",
         })
         if worst == "ok":
             worst = "warning"
 
-    # --- GPU (та же метрика, что и в ML: счётчики Windows → nvidia-smi) ---
     gpu_summary_extra = ""
     try:
         from .ml_health import get_gpu_health_snapshot
@@ -286,11 +266,11 @@ def get_system_health() -> Dict[str, Any]:
                 "component": "GPU",
                 "status": "error",
                 "value": value_str,
-                "reason": "Очень высокая загрузка видеокарты — возможны подтормаживания и перегрев.",
+                "reason": "Очень высокая загрузка видеокарты - возможны подтормаживания и перегрев.",
             })
             worst = "error"
             gpu_summary_extra = (
-                "Видеокарта сильно загружена — закройте тяжёлые игры и рендер, снизьте настройки графики, проверьте охлаждение."
+                "Видеокарта сильно загружена - закройте тяжёлые игры и рендер, снизьте настройки графики, проверьте охлаждение."
             )
         elif pct >= GPU_OK:
             details.append({
@@ -302,7 +282,7 @@ def get_system_health() -> Dict[str, Any]:
             if worst == "ok":
                 worst = "warning"
             gpu_summary_extra = (
-                "Загрузка GPU повышена — при необходимости закройте приложения с 3D и снизьте качество изображения."
+                "Загрузка GPU повышена - при необходимости закройте приложения с 3D и снизьте качество изображения."
             )
         else:
             details.append({
@@ -317,7 +297,7 @@ def get_system_health() -> Dict[str, Any]:
             "component": "GPU",
             "status": "ok",
             "value": short,
-            "reason": "Текущая загрузка недоступна; подробности — в разделе «GPU».",
+            "reason": "Текущая загрузка недоступна; подробности - в разделе «GPU».",
         })
     else:
         details.append({
@@ -329,20 +309,18 @@ def get_system_health() -> Dict[str, Any]:
         if worst == "ok":
             worst = "warning"
 
-    # --- Итог и рекомендация ---
     if worst == "error":
-        message = "Система неисправна: обнаружены критические проблемы."
-        summary = "Рекомендуется снизить нагрузку (закрыть программы), освободить место на дисках или подключить питание (ноутбук)."
+        message = "Критическое состояние: обнаружены критические проблемы."
+        summary = "Рекомендуется снизить нагрузку (закрыть программы), освободить место на дисках или подключить питание."
     elif worst == "warning":
         message = "Система в целом работоспособна, но есть замечания."
-        summary = "Обратите внимание на компоненты со статусом «предупреждение» и при необходимости освободите ресурсы или место."
+        summary = "Обратите внимание на компоненты со статусом предупреждение и при необходимости освободите ресурсы или место."
     else:
         message = "Система исправна: все ключевые компоненты в норме."
         summary = "Продолжайте работу. Рекомендуется периодически проверять состояние дисков и памяти."
     if gpu_summary_extra:
         summary = (summary.rstrip() + " " + gpu_summary_extra).strip()
 
-    # Ординарная логистическая регрессия (6 признаков), только инференс
     ml_info: Optional[Dict[str, Any]] = None
     try:
         from .ml_health import predict_only

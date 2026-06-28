@@ -8,15 +8,12 @@ from PySide6.QtWidgets import (
     QWidget,
     QFrame,
 )
-
 from core.system_health import get_system_health
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
 from ui.widgets import section_title
 
-
 def _status_indicator(color: str, size: int = 10) -> QWidget:
-    """Красный/зелёный/жёлтый индикатор-точка."""
     dot = QFrame()
     dot.setFixedSize(size, size)
     dot.setStyleSheet(f"""
@@ -27,12 +24,10 @@ def _status_indicator(color: str, size: int = 10) -> QWidget:
         }}
     """)
     return dot
-
-# Понятные пользователю формулировки
 STATUS_HEADING = {
     "ok": "Всё в порядке",
     "warning": "Есть замечания",
-    "error": "Требуется внимание",
+    "error": "Критическое состояние",
 }
 
 def _max_severity_status(a: str, b: str) -> str:
@@ -41,16 +36,12 @@ def _max_severity_status(a: str, b: str) -> str:
     rb = order.get(b, 0)
     return a if ra >= rb else b
 
-
 def _is_valid_value(val: str) -> bool:
-    """Проверяет, что value содержит осмысленные данные (например, процент)."""
-    if not val or val == "—":
+    if not val or val == "-":
         return False
     return "%" in val or val.replace(".", "").replace(",", "").isdigit()
 
-
 def _parse_disk_pct(val: str) -> float:
-    """Извлекает процент из строки вида '92%' или '85%'."""
     if not val:
         return 0.0
     try:
@@ -58,13 +49,10 @@ def _parse_disk_pct(val: str) -> float:
     except (ValueError, TypeError):
         return 0.0
 
-
 def _enrich_advice(advice: list, details: list) -> list:
-    """Добавляет конкретику в советы: диск, %, и т.д."""
     result = []
     for tip in advice:
         tip_lower = tip.lower()
-        # Совет про диск — добавляем диски с проблемой (warning/error) или заполнением >= 80%
         if "диск" in tip_lower:
             relevant_disks = []
             for d in details:
@@ -77,15 +65,13 @@ def _enrich_advice(advice: list, details: list) -> list:
                     relevant_disks.append(d)
             if relevant_disks:
                 parts = [f"{d['component']} ({d['value']})" for d in relevant_disks]
-                tip = f"{tip.rstrip('.,')} — {', '.join(parts)}."
+                tip = f"{tip.rstrip('.,')} - {', '.join(parts)}."
             result.append(tip)
-        # Совет про CPU — добавляем текущий %
         elif "процессор" in tip_lower or "cpu" in tip_lower:
             cpu_d = next((d for d in details if d.get("component") == "CPU"), None)
             if cpu_d and _is_valid_value(cpu_d.get("value")):
                 tip = f"{tip.rstrip('.,')} (сейчас {cpu_d['value']})."
             result.append(tip)
-        # Совет про ОЗУ — добавляем %
         elif "озу" in tip_lower or ("память" in tip_lower and "диск" not in tip_lower):
             ram_d = next((d for d in details if "Память" in (d.get("component") or "") and "ОЗУ" in (d.get("component") or "")), None)
             if not ram_d:
@@ -93,7 +79,6 @@ def _enrich_advice(advice: list, details: list) -> list:
             if ram_d and _is_valid_value(ram_d.get("value")):
                 tip = f"{tip.rstrip('.,')} (сейчас {ram_d['value']})."
             result.append(tip)
-        # Совет про батарею — добавляем %
         elif "батаре" in tip_lower or "заряд" in tip_lower:
             bat_d = next((d for d in details if d.get("component") == "Батарея"), None)
             if bat_d and _is_valid_value(bat_d.get("value")):
@@ -108,29 +93,23 @@ def _enrich_advice(advice: list, details: list) -> list:
             result.append(tip)
     return result
 
-
 class HealthPage(BasePage):
-    """Раздел «Здоровье системы»: понятная оценка состояния ПК."""
-
     def __init__(self):
         super().__init__()
 
         self._root = self.build_root(
             "Здоровье системы",
-            "Правила по компонентам и прогноз модели (ординарная логистическая регрессия, 6 признаков).",
+            "Правила по компонентам и прогноз модели",
             spacing=14,
         )
-
         self._box_health = None
         self._refresh_health_block()
-
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         btn_refresh = QPushButton("Обновить")
         btn_refresh.clicked.connect(self._refresh_health_block)
         btn_row.addWidget(btn_refresh)
         self._root.addLayout(btn_row)
-
         self._root.addStretch(1)
 
     def _refresh_health_block(self):
@@ -138,19 +117,14 @@ class HealthPage(BasePage):
             self._box_health.setParent(None)
             self._box_health.deleteLater()
             self._box_health = None
-
         try:
             health = get_system_health()
             details = health.get("details") or []
             summary = health.get("summary", "")
             ml = health.get("ml")
-
-            # Итоговый статус: правила + ML. ML не должен "улучшать" критические случаи.
             status = health.get("status", "ok")
             if ml and ml.get("model_trained") and ml.get("ml_status"):
                 status = _max_severity_status(status, ml["ml_status"])
-
-            # Рекомендации: summary по правилам + советы ML (если есть)
             advice = list((ml or {}).get("advice") or [])
             if summary:
                 if not advice:
@@ -158,14 +132,11 @@ class HealthPage(BasePage):
                 else:
                     advice = [summary] + advice
             advice = _enrich_advice(advice, details)
-
             self._box_health = QGroupBox()
             self._box_health.setTitle("")
             lay = QVBoxLayout(self._box_health)
             lay.setSpacing(12)
             lay.addWidget(section_title("Состояние компьютера"))
-
-            # Главный вердикт — крупно и понятно
             heading = STATUS_HEADING.get(status, status)
             if status == "error":
                 style = f"color:{COLORS['error']}; font-size:16px; font-weight:bold;"
@@ -173,34 +144,22 @@ class HealthPage(BasePage):
                 style = f"color:{COLORS['warning']}; font-size:16px; font-weight:bold;"
             else:
                 style = f"color:{COLORS['success']}; font-size:16px; font-weight:bold;"
-
-            row_heading = QHBoxLayout()
-            row_heading.setSpacing(8)
-            ind_color = COLORS["error"] if status == "error" else (COLORS["warning"] if status == "warning" else COLORS["success"])
-            row_heading.addWidget(_status_indicator(ind_color, 12))
             lbl_heading = QLabel(heading)
             lbl_heading.setStyleSheet(style)
-            row_heading.addWidget(lbl_heading)
-            row_heading.addStretch()
-            lay.addLayout(row_heading)
-
-            # Рекомендации (полезные советы на основе анализа)
+            lay.addWidget(lbl_heading)
             if advice:
                 advice_label = QLabel("Рекомендации:")
                 advice_label.setStyleSheet("font-weight:bold;")
                 lay.addWidget(advice_label)
                 for tip in advice:
-                    l_tip = QLabel("• " + tip)
+                    l_tip = QLabel(tip)
                     l_tip.setWordWrap(True)
                     l_tip.setMinimumWidth(0)
                     lay.addWidget(l_tip)
                 lay.addWidget(QLabel(""))
-
-            # Компоненты — простым списком
             comp_label = QLabel("По компонентам:")
             comp_label.setStyleSheet("font-weight:bold;")
             lay.addWidget(comp_label)
-
             for d in details:
                 comp = d.get("component", "-")
                 val = d.get("value", "-")
@@ -209,13 +168,11 @@ class HealthPage(BasePage):
                 if st == "ok":
                     line = f"{comp}: {val}"
                 elif reason:
-                    line = f"{comp}: {val} — {reason}"
+                    line = f"{comp}: {val} - {reason}"
                 else:
                     line = f"{comp}: {val}"
                 row = QHBoxLayout()
                 row.setSpacing(8)
-                ind_color = COLORS["error"] if st == "error" else (COLORS["warning"] if st == "warning" else COLORS["success"])
-                row.addWidget(_status_indicator(ind_color))
                 lbl = QLabel(line)
                 lbl.setWordWrap(True)
                 lbl.setMinimumWidth(0)
@@ -226,7 +183,6 @@ class HealthPage(BasePage):
                 row.addWidget(lbl)
                 row.addStretch()
                 lay.addLayout(row)
-
             self._root.insertWidget(1, self._box_health)
         except Exception as e:
             self._box_health = QGroupBox()
