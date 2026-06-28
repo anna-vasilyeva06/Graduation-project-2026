@@ -1,92 +1,108 @@
 import json
 import os
 import subprocess
-
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QGroupBox
-
+from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QGroupBox, QHBoxLayout, QPushButton, QWidget
 from ui.pages.base import BasePage
 from ui.widgets import section_title
 from ui.widgets.text_utils import wrap_label, elide_middle
 
-
 class MemoryPage(BasePage):
     def __init__(self):
         super().__init__()
-        root = self.build_root(
+        self._root = self.build_root(
             "Память",
-            "ОЗУ, диски и крупные папки и файлы.",
+            "ОЗУ, диски и крупные папки и файлы",
             spacing=10,
         )
+        self._content = QWidget()
+        self._content_lay = QVBoxLayout(self._content)
+        self._content_lay.setContentsMargins(0, 0, 0, 0)
+        self._content_lay.setSpacing(10)
+        self._root.addWidget(self._content)
+        self._root.addStretch(1)
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_refresh = QPushButton("Обновить")
+        btn_refresh.setToolTip("Пересчитать показатели памяти, дисков и крупных объектов")
+        btn_refresh.clicked.connect(self._refresh)
+        btn_row.addWidget(btn_refresh)
+        self._root.addLayout(btn_row)
+        self._refresh()
 
+    def _clear_layout(self, lay: QVBoxLayout) -> None:
+        while lay.count():
+            item = lay.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+
+    def _refresh(self) -> None:
+        self._clear_layout(self._content_lay)
+        root = self._content_lay
         from core.memory import get_memory, get_largest_paths
-
         mem = get_memory()
         lbl_ram = QLabel("<b>Оперативная память</b>")
-        lbl_ram.setToolTip("ОЗУ используется программами. При нехватке система использует файл подкачки - работа замедляется")
+        lbl_ram.setToolTip(
+            "ОЗУ используется программами. При нехватке система использует файл подкачки - работа замедляется"
+        )
         root.addWidget(lbl_ram)
         root.addSpacing(6)
-
         bar = QProgressBar()
         bar.setFixedHeight(12)
         bar.setValue(int(mem["Usage %"]))
         bar.setTextVisible(False)
         root.addWidget(bar)
         root.addWidget(wrap_label(f'{mem["Used GB"]} GB / {mem["Total GB"]} GB'))
-
         root.addSpacing(14)
         lbl_disk = QLabel("<b>Локальные диски</b>")
-        lbl_disk.setToolTip("Заполненность дисков. Мало свободного места может мешать обновлениям и установке программ")
+        lbl_disk.setToolTip(
+            "Заполненность дисков. Мало свободного места может мешать обновлениям и установке программ"
+        )
         root.addWidget(lbl_disk)
         root.addSpacing(6)
-
         try:
             cmd = [
                 "powershell",
                 "-NoProfile",
                 "-Command",
                 "Get-Volume | Where DriveType -eq 'Fixed' | "
-                "Select DriveLetter,Size,SizeRemaining | ConvertTo-Json"
+                "Select DriveLetter,Size,SizeRemaining | ConvertTo-Json",
             ]
-
             raw = subprocess.check_output(cmd, shell=True)
             data = json.loads(raw.decode("utf-8"))
-
             if isinstance(data, dict):
                 data = [data]
-
             for d in data:
                 if not d.get("DriveLetter"):
                     continue
-
                 if not d.get("Size") or not d.get("SizeRemaining"):
                     continue
                 name = d["DriveLetter"] + ":"
                 size = d["Size"]
                 free = d["SizeRemaining"]
-
                 used = size - free
-                percent = int((used/size)*100)
-
+                percent = int((used / size) * 100)
                 bar = QProgressBar()
                 bar.setFixedHeight(12)
                 bar.setValue(percent)
-                bar.setFormat(f"{name}   {round(used/1e9,1)} / {round(size/1e9,1)} GB")
+                bar.setFormat(
+                    f"{name}   {round(used / 1e9, 1)} / {round(size / 1e9, 1)} GB"
+                )
                 root.addWidget(bar)
-
         except Exception as e:
             root.addWidget(wrap_label("Ошибка получения дисков: " + str(e)))
-
         root.addSpacing(16)
         lbl_heavy = QLabel("<b>Крупные объекты (по дискам)</b>")
-        lbl_heavy.setToolTip("Папки и файлы, занимающие больше всего места. Помогает найти, что можно удалить для освобождения места")
+        lbl_heavy.setToolTip(
+            "Папки и файлы, занимающие больше всего места. Помогает найти, что можно удалить для освобождения места"
+        )
         root.addWidget(lbl_heavy)
         root.addSpacing(6)
-
         try:
             heavy = get_largest_paths()
             drives = heavy.get("drives") or []
-
             if not drives:
                 root.addWidget(wrap_label("Нет данных по крупным объектам"))
             for drive in drives:
@@ -94,26 +110,26 @@ class MemoryPage(BasePage):
                 dirs = drive.get("dirs", []) or []
                 files = drive.get("files", []) or []
                 scanned = drive.get("scanned_files", 0)
-
                 def pretty_rel(path: str) -> str:
                     try:
                         rel = os.path.relpath(path, base) if base else path
                     except ValueError:
                         rel = path
                     return rel
-
                 title_drive = wrap_label(f"Диск/путь: {base}", tooltip=str(base))
                 title_drive.setStyleSheet("font-weight:bold; margin-top:6px;")
-                title_drive.setToolTip("Корневой путь, с которого выполнен анализ крупных папок и файлов")
+                title_drive.setToolTip(
+                    "Корневой путь, с которого выполнен анализ крупных папок и файлов"
+                )
                 root.addWidget(title_drive)
-
                 box_dirs = QGroupBox()
                 box_dirs.setTitle("")
-                box_dirs.setToolTip("Папки, занимающие больше всего места на диске. Отсортированы по размеру")
+                box_dirs.setToolTip(
+                    "Папки, занимающие больше всего места на диске. Отсортированы по размеру"
+                )
                 lay_dirs = QVBoxLayout(box_dirs)
                 lay_dirs.addWidget(section_title("Крупные папки"))
                 lay_dirs.setSpacing(4)
-
                 if dirs:
                     for d in dirs:
                         p = str(d.get("path", ""))
@@ -123,16 +139,15 @@ class MemoryPage(BasePage):
                         lay_dirs.addWidget(wrap_label(txt, tooltip=rel))
                 else:
                     lay_dirs.addWidget(wrap_label("Нет данных по папкам"))
-
                 root.addWidget(box_dirs)
-
                 box_files = QGroupBox()
                 box_files.setTitle("")
-                box_files.setToolTip("Отдельные файлы с наибольшим размером. Помогает найти кандидатов на удаление")
+                box_files.setToolTip(
+                    "Отдельные файлы с наибольшим размером. Помогает найти кандидатов на удаление"
+                )
                 lay_files = QVBoxLayout(box_files)
                 lay_files.addWidget(section_title("Крупные файлы"))
                 lay_files.setSpacing(4)
-
                 if files:
                     for f in files:
                         p = str(f.get("path", ""))
@@ -142,15 +157,12 @@ class MemoryPage(BasePage):
                         lay_files.addWidget(wrap_label(txt, tooltip=rel))
                 else:
                     lay_files.addWidget(wrap_label("Нет данных по файлам"))
-
                 root.addWidget(box_files)
-
                 note = wrap_label(
                     f"Проанализировано файлов: {scanned} (путь: {elide_middle(base, 90)})",
                     tooltip=str(base),
                 )
                 note.setStyleSheet("color:#666; font-size:10px")
                 root.addWidget(note)
-
         except Exception as e:
             root.addWidget(wrap_label("Ошибка анализа папок и файлов: " + str(e)))

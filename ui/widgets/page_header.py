@@ -4,8 +4,6 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 
 class PageHeader(QWidget):
-    """Заголовок страницы и подзаголовок в едином стиле."""
-
     def __init__(self, title: str, subtitle: str = "", parent=None):
         super().__init__(parent)
         lay = QVBoxLayout(self)

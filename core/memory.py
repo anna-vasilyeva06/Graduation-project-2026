@@ -16,10 +16,8 @@ _EXCLUDED: tuple[tuple[str, ...], ...] = (
 )
 _SKIP_ROOT_FILES = frozenset({"pagefile.sys", "hiberfil.sys", "swapfile.sys"})
 
-
 def _n(p: str) -> str:
     return os.path.normcase(os.path.normpath(p))
-
 
 def _excluded(full: str, root_n: str) -> bool:
     full_n = _n(full)
@@ -33,7 +31,6 @@ def _excluded(full: str, root_n: str) -> bool:
         len(parts) >= len(pref) and parts[: len(pref)] == list(pref) for pref in _EXCLUDED
     )
 
-
 def _rollup_size(dirpath: str, size: int, root_n: str, size_by_dir: Dict[str, int]) -> None:
     path = dirpath
     while True:
@@ -45,7 +42,6 @@ def _rollup_size(dirpath: str, size: int, root_n: str, size_by_dir: Dict[str, in
             break
         path = parent
 
-
 def get_memory() -> Dict[str, float]:
     m = psutil.virtual_memory()
     return {
@@ -54,7 +50,6 @@ def get_memory() -> Dict[str, float]:
         "Free GB": round(m.available / 1e9, 2),
         "Usage %": m.percent,
     }
-
 
 def _fixed_drive_roots() -> List[str]:
     roots: List[str] = []
@@ -70,7 +65,6 @@ def _fixed_drive_roots() -> List[str]:
         if os.path.isdir(home):
             roots.append(home)
     return roots
-
 
 def _scan_drive_for_largest(root: str, limit_dirs: int, limit_files: int) -> Dict[str, Any]:
     root_n = _n(root)
@@ -108,7 +102,6 @@ def _scan_drive_for_largest(root: str, limit_dirs: int, limit_files: int) -> Dic
         "dirs": [{"path": p, "size_gb": round(sz / 1e9, 2)} for p, sz in dirs_sorted[:limit_dirs]],
         "files": [{"path": p, "size_gb": round(sz / 1e9, 2)} for p, sz in files_sorted[:limit_files]],
     }
-
 
 def get_largest_paths(limit_dirs: int = 5, limit_files: int = 5) -> Dict[str, object]:
     return {"drives": [_scan_drive_for_largest(r, limit_dirs, limit_files) for r in _fixed_drive_roots()]}

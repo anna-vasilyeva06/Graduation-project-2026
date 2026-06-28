@@ -1,4 +1,3 @@
-"""Базовый шрифт приложения: Windows — Segoe UI Variable / Segoe UI."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,7 +9,6 @@ if TYPE_CHECKING:
 
 
 def setup_app_font(app: "QApplication") -> None:
-    """Назначает читаемый UI-шрифт с антиалиасингом (лучше, чем один QSS font-family)."""
     candidates = (
         "Segoe UI Variable Text",
         "Segoe UI Variable",

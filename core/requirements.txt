@@ -5,4 +5,7 @@ wmi
 py-cpuinfo
 numpy
 scipy
+scikit-learn>=1.3
 matplotlib
+pandas
+statsmodels

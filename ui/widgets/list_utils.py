@@ -4,7 +4,6 @@ from PySide6.QtWidgets import QListWidget
 
 
 def fit_list_widget_height(w: QListWidget) -> None:
-    """Подгоняет высоту QListWidget под содержимое (без внутреннего скролла)."""
     n = w.count()
     if n == 0:
         w.setFixedHeight(0)
@@ -17,4 +16,3 @@ def fit_list_widget_height(w: QListWidget) -> None:
         h += row_fallback if rh <= 0 else rh
     h += 2 * w.frameWidth() + 4
     w.setFixedHeight(h)
-

@@ -4,8 +4,6 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
 
 class KpiCard(QFrame):
-    """Карточка метрики: подпись, крупное значение, необязательная строка."""
-
     def __init__(
         self,
         title: str,
@@ -37,7 +35,6 @@ class KpiCard(QFrame):
             lay.addWidget(self._hint_label)
 
     def set_metric(self, value: str, subtitle: str | None = None) -> None:
-        """Обновляет значение; subtitle=None — не трогать подпись; '' — скрыть подпись."""
         self._value_label.setText(value)
         if subtitle is None:
             return

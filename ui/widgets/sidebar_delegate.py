@@ -1,4 +1,3 @@
-"""Отрисовка пунктов боковой панели: иконка + зазор + текст (без сжатия QIcon из-за DPR)."""
 from __future__ import annotations
 
 from PySide6.QtCore import QModelIndex, QRect, QSize, Qt
@@ -10,8 +9,6 @@ from ui.icons.loader import sidebar_icon
 
 
 class SidebarNavDelegate(QStyledItemDelegate):
-    """Зазор иконка–текст; выделение — тёмный текст и акцентные SVG (не белый HighlightedText)."""
-
     ICON_LEFT = 8
     ICON_TEXT_GAP = 12
     TEXT_RIGHT = 8
@@ -58,7 +55,7 @@ class SidebarNavDelegate(QStyledItemDelegate):
             rect.right() - text_left - self.TEXT_RIGHT,
             rect.height(),
         )
-        # Не HighlightedText (белый) — на светлом градиенте нечитаемо; как в QSS — акцент при выборе
+
         if selected:
             color = QColor(COLORS["accent"])
         else:
@@ -87,6 +84,6 @@ class SidebarNavDelegate(QStyledItemDelegate):
         ih = opt.decorationSize.height() if not opt.decorationSize.isEmpty() else 24
         tw = fm.horizontalAdvance(text)
         w = self.ICON_LEFT + iw + self.ICON_TEXT_GAP + tw + self.TEXT_RIGHT
-        # Высота строки как у «крупных» вкладок раньше
+
         h = max(ih + 8, fm.height() + 14)
         return QSize(w, h)

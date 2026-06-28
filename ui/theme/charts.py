@@ -1,5 +1,7 @@
-"""Графики производительности: острые линии (как в диспетчере задач), заливка под кривой, без скругления."""
 from __future__ import annotations
+
+REFRESH_INTERVAL_MS = 2500
+HISTORY_LENGTH = 30
 
 from PySide6.QtCharts import QAreaSeries, QChart, QChartView, QLineSeries
 from PySide6.QtCore import QMargins, Qt
@@ -16,7 +18,6 @@ from PySide6.QtGui import (
 
 
 def update_perf_chart_x_range(chart: QChart, line_series: QLineSeries) -> None:
-    """Диапазон оси X по первой и последней точке — иначе при фиксированном (0,1) новые точки невидимы."""
     ax = chart.axisX()
     if ax is None:
         return
@@ -41,7 +42,6 @@ def apply_perf_chart_theme(
     area_series: QAreaSeries,
     view: QChartView | None = None,
 ) -> None:
-    """Линия без сглаживания (не spline), плоские стыки — острые пики; заливка снизу."""
     plot_bg = QColor(245, 247, 250)
     plot_edge = QColor(190, 200, 215)
     grid_major = QColor(210, 215, 225)
@@ -52,7 +52,7 @@ def apply_perf_chart_theme(
     chart.setMargins(QMargins(4, 4, 4, 4))
     chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
 
-    # Прозрачный фон — видна карточка QFrame#chartCard
+
     chart.setBackgroundVisible(True)
     chart.setBackgroundBrush(QBrush(QColor(0, 0, 0, 0)))
     chart.setBackgroundRoundness(0)
@@ -67,7 +67,7 @@ def apply_perf_chart_theme(
     grad.setColorAt(0.55, QColor(0, 120, 212, 70))
     grad.setColorAt(1.0, QColor(0, 120, 212, 8))
     area_series.setBrush(QBrush(grad))
-    # Линия графика — контур области (QLineSeries не добавляем на chart, чтобы не дублировать ось Y).
+
     pen = QPen(line)
     pen.setWidthF(1.5)
     pen.setCosmetic(True)
@@ -99,7 +99,7 @@ def apply_perf_chart_theme(
             pass
 
     if view is not None:
-        # QSS на родителе иногда обрезает отрисовку QGraphicsView / QChartView по высоте.
+
         view.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
         view.setFrameShape(QFrame.Shape.NoFrame)
         view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)

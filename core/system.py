@@ -3,12 +3,9 @@ import os
 import platform
 import socket
 import uuid
-
 import psutil
 
-
 def _total_disk_gb_wmi() -> int:
-    """Запасной подсчёт на Windows, если psutil не дал ни одного успешного тома."""
     try:
         import wmi
 
@@ -28,12 +25,7 @@ def _total_disk_gb_wmi() -> int:
     except Exception:
         return 0
 
-
 def get_total_disk_gb():
-    """
-    Суммарный объём локальных томов (фиксированные + съёмные), без сетевых и CD.
-    Возвращает число ГБ или None, если данных нет.
-    """
     total_bytes = 0
     for p in psutil.disk_partitions(all=True):
         mp = p.mountpoint

@@ -2,12 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout
-
 from ui.widgets import PageHeader
-
-
 class BasePage(QWidget):
-
     def build_root(
         self,
         title: str,
@@ -27,7 +23,5 @@ class BasePage(QWidget):
 
     def filter(self, text: str) -> None:
         return
-
     def clear_filter(self) -> None:
         return
-

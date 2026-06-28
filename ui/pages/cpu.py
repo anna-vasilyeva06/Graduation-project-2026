@@ -9,13 +9,16 @@ from PySide6.QtWidgets import (
     QListWidget,
     QFrame,
 )
-
 import psutil
-
 from core.processes import get_top_processes
 from ui.pages.base import BasePage
 from ui.widgets import section_title
-from ui.theme.charts import apply_perf_chart_theme, update_perf_chart_x_range
+from ui.theme.charts import (
+    HISTORY_LENGTH,
+    REFRESH_INTERVAL_MS,
+    apply_perf_chart_theme,
+    update_perf_chart_x_range,
+)
 from ui.widgets.list_utils import fit_list_widget_height
 
 class CpuPage(BasePage):
@@ -26,11 +29,8 @@ class CpuPage(BasePage):
             "Модель, ядра, загрузка в реальном времени и топ процессов.",
             spacing=10,
         )
-
         from core.cpu import get_cpu
-
         cpu = get_cpu()
-
         lbl_cpu = QLabel("<b>Процессор</b>")
         lbl_cpu.setToolTip(
             "Центральный процессор: модель, ядра, потоки и текущая загрузка в реальном времени"
@@ -43,14 +43,12 @@ class CpuPage(BasePage):
         lbl_threads = QLabel("Потоков: " + str(cpu.get("Threads", "-")))
         lbl_threads.setToolTip("Логические процессоры")
         root.addWidget(lbl_threads)
-
         root.addSpacing(6)
         lbl_load = QLabel("Загрузка CPU (%)")
         lbl_load.setToolTip(
             "Процент использования процессора. Высокая загрузка (>85%) может вызывать зависание"
         )
         root.addWidget(lbl_load)
-
         self.line_series = QLineSeries()
         self.base_series = QLineSeries()
         self.area_series = QAreaSeries()
@@ -64,21 +62,17 @@ class CpuPage(BasePage):
             ax.setRange(0, 100)
         self.chart.axisX().setTitleText("секунды")
         self.chart.axisY().setTitleText("%")
-
         view = QChartView(self.chart)
         view.setFixedHeight(420)
         apply_perf_chart_theme(self.chart, self.line_series, self.area_series, view)
-
         self._chart_view = view
         self._seed_chart_baseline()
-
         chart_card = QFrame()
         chart_card.setObjectName("chartCard")
         wrap = QVBoxLayout(chart_card)
         wrap.setContentsMargins(12, 12, 12, 12)
         wrap.addWidget(view)
         root.addWidget(chart_card)
-
         root.addSpacing(10)
         box_proc = QGroupBox()
         box_proc.setTitle("")
@@ -107,14 +101,10 @@ class CpuPage(BasePage):
         lay_proc.addWidget(self._proc_list)
         root.addWidget(box_proc)
         self._refresh_top("cpu")
-
         root.addStretch(1)
-
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
-        from config import CHART_REFRESH_BACKGROUND_MS
-
-        self.timer.start(CHART_REFRESH_BACKGROUND_MS)
+        self.timer.start(REFRESH_INTERVAL_MS)
 
     def _seed_chart_baseline(self) -> None:
         for bx in (0, 1):
@@ -123,20 +113,10 @@ class CpuPage(BasePage):
         self.x = 2
         self.chart.axisX().setRange(0, 1)
 
-    def set_monitoring_active(self, active: bool) -> None:
-        from config import CHART_REFRESH_BACKGROUND_MS, REFRESH_INTERVAL_MS
-        self.timer.setInterval(
-            REFRESH_INTERVAL_MS if active else CHART_REFRESH_BACKGROUND_MS
-        )
-        if active:
-            QTimer.singleShot(0, self.tick)
-
     def tick(self):
         y = psutil.cpu_percent(interval=None)
         self.line_series.append(self.x, y)
         self.base_series.append(self.x, 0.0)
-        from config import HISTORY_LENGTH
-
         if self.line_series.count() > HISTORY_LENGTH:
             self.line_series.remove(0)
             self.base_series.remove(0)

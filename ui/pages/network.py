@@ -7,12 +7,10 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QPushButton,
 )
-
 from core.network import get_network_info, ping_host, check_port
 from ui.pages.base import BasePage
 from ui.theme.colors import COLORS
 from ui.widgets import section_title
-
 
 def _iface_group(iface: dict) -> QGroupBox:
     box = QGroupBox()
@@ -22,7 +20,6 @@ def _iface_group(iface: dict) -> QGroupBox:
     lay.setSpacing(8)
     lay.addWidget(QLabel(f"Тип: {iface.get('type', '-')}"))
     lay.addWidget(QLabel("Статус: подключено"))
-
     ipv4 = iface.get("ipv4") or []
     if ipv4:
         w = QLabel(f"IPv4: {', '.join(ipv4)}")
@@ -33,21 +30,18 @@ def _iface_group(iface: dict) -> QGroupBox:
         w = QLabel(f"IPv6: {', '.join(ipv6)}")
         w.setToolTip("Адрес нового поколения (формат с двоеточиями)")
         lay.addWidget(w)
-
     mac = iface.get("mac") or ""
     if mac:
         w = QLabel(f"MAC: {mac}")
         w.setToolTip("Уникальный идентификатор сетевого адаптера")
         lay.addWidget(w)
-
-    sp = QLabel(f"Скорость: {iface.get('speed', '-')}")
-    sp.setToolTip("Максимальная пропускная способность интерфейса (Мбит/с)")
+    sp = QLabel(f"Скорость адаптера (по ОС): {iface.get('speed', '-')}")
+    sp.setToolTip(
+        "Скорость линка/адаптера, которую сообщает ОС/драйвер (не скорость интернета). "
+        "У Wi‑Fi/виртуальных адаптеров может быть 0 или неточной."
+    )
     lay.addWidget(sp)
-    mtu = QLabel(f"MTU: {iface.get('mtu', '-')}")
-    mtu.setToolTip("Максимальный размер пакета данных в байтах")
-    lay.addWidget(mtu)
     return box
-
 
 class NetworkPage(BasePage):
     def __init__(self):
@@ -57,14 +51,12 @@ class NetworkPage(BasePage):
             "Интерфейсы, адреса, скорость и проверка ping/порта.",
             spacing=14,
         )
-
         lbl = QLabel("Активные подключения")
         lbl.setToolTip(
             "Сетевые интерфейсы (Wi‑Fi, Ethernet и др.) с их параметрами и статусом"
         )
         lbl.setStyleSheet("font-weight:bold; margin-top:12px; margin-bottom:4px;")
         root.addWidget(lbl)
-
         try:
             infos = get_network_info()
         except Exception:
@@ -74,14 +66,12 @@ class NetworkPage(BasePage):
         else:
             for iface in infos:
                 root.addWidget(_iface_group(iface))
-
         adv = QLabel("Проверка доступности")
         adv.setStyleSheet("font-weight:bold; margin-top:20px; margin-bottom:8px;")
         adv.setToolTip(
             "Ping - доступность узла. Порт - открыт ли указанный TCP-порт"
         )
         root.addWidget(adv)
-
         adv_box = QGroupBox()
         adv_box.setTitle("")
         adv_box.setToolTip(
@@ -90,7 +80,6 @@ class NetworkPage(BasePage):
         adv_lay = QVBoxLayout(adv_box)
         adv_lay.addWidget(section_title("Проверка хоста или узла"))
         adv_lay.setSpacing(8)
-
         row1 = QHBoxLayout()
         row1.addWidget(QLabel("Хост:"))
         self._host_input = QLineEdit()
@@ -104,7 +93,6 @@ class NetworkPage(BasePage):
         row1.addWidget(self._port_input)
         row1.addStretch()
         adv_lay.addLayout(row1)
-
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
         ping_btn = QPushButton("Ping")
@@ -115,7 +103,6 @@ class NetworkPage(BasePage):
         btn_row.addWidget(port_btn)
         btn_row.addStretch()
         adv_lay.addLayout(btn_row)
-
         self._result_label = QLabel("")
         self._result_label.setWordWrap(True)
         self._result_label.setStyleSheet(f"color:{COLORS['text']}; margin-top:4px;")
